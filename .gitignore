@@ -1,0 +1,7 @@
+*.rom
+*.log
+outputs/
+.venv/
+__pycache__/
+*.pem
+.env

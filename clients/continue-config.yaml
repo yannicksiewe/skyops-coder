@@ -1,0 +1,35 @@
+# Continue (VS Code / JetBrains) config -> save as ~/.continue/config.yaml
+name: skyops-coder
+version: 0.0.1
+schema: v1
+models:
+  - name: Coder 7B (skyops, RTX 3070)
+    provider: openai
+    model: coder-chat
+    apiBase: http://<VM_IP>:8000/v1
+    apiKey: <VLLM_API_KEY>
+    roles: [chat, edit, apply]
+    defaultCompletionOptions:
+      contextLength: 16384
+      maxTokens: 2048
+      temperature: 0.2
+  - name: Coder 1.5B autocomplete (skyops, RTX 2080)
+    provider: openai
+    model: coder-fim
+    apiBase: http://<VM_IP>:8001/v1
+    apiKey: <VLLM_API_KEY>
+    roles: [autocomplete]
+    promptTemplates:
+      autocomplete: "<|fim_prefix|>{{{prefix}}}<|fim_suffix|>{{{suffix}}}<|fim_middle|>"
+    defaultCompletionOptions:
+      maxTokens: 256
+      temperature: 0.1
+      stop: ["<|endoftext|>", "<|fim_prefix|>", "<|fim_suffix|>", "<|fim_middle|>", "<|repo_name|>", "<|file_sep|>"]
+context:
+  - provider: code
+  - provider: docs
+  - provider: diff
+  - provider: terminal
+  - provider: problems
+  - provider: folder
+  - provider: codebase

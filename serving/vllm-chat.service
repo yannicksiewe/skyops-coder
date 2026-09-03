@@ -1,0 +1,19 @@
+[Unit]
+Description=vLLM coding chat model (GPU 0)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+EnvironmentFile=/etc/vllm.env
+Environment=CUDA_VISIBLE_DEVICES=0
+ExecStart=/home/ubuntu/vllm/.venv/bin/vllm serve ${CHAT_MODEL} \
+  --host 0.0.0.0 --port 8000 --api-key ${VLLM_API_KEY} \
+  --served-model-name coder-chat \
+  --max-model-len 16384 --max-num-seqs 8 --gpu-memory-utilization 0.93 \
+  --enable-auto-tool-choice --tool-call-parser hermes
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
