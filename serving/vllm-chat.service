@@ -6,6 +6,9 @@ Wants=network-online.target
 [Service]
 User=ubuntu
 EnvironmentFile=/etc/vllm.env
+Environment=CUDA_DEVICE_ORDER=PCI_BUS_ID
+# no CUDA toolkit on the VM: skip FlashInfer's JIT-compiled sampler (falls back to the torch sampler)
+Environment=VLLM_USE_FLASHINFER_SAMPLER=0
 Environment=CUDA_VISIBLE_DEVICES=0
 ExecStart=/home/ubuntu/vllm/.venv/bin/vllm serve ${CHAT_MODEL} \
   --host 0.0.0.0 --port 8000 --api-key ${VLLM_API_KEY} \
