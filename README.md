@@ -64,8 +64,14 @@ python infer.py --adapter outputs/lora --prompt "..."                  # base mo
 CUDA_VISIBLE_DEVICES=1 python train.py ...                            # use the second GPU
 ```
 
-Measured on the RTX 3070: 20 LoRA steps on Qwen2.5-0.5B in 29 s at 2 GB peak VRAM; inference 68 tok/s
-(0.5B) and 47 tok/s (1.5B) in bf16; vLLM 7B-AWQ chat with 16k context.
+## Measured
+
+| Workload | Result |
+|---|---|
+| Chat, Qwen2.5-Coder-7B-AWQ on RTX 3070 via vLLM, single request | 81 tok/s, 16k context, 7.3 GB VRAM |
+| Autocomplete, Qwen2.5-Coder-1.5B on RTX 2080, 48-token FIM completion | 350 ms end to end |
+| LoRA training, Qwen2.5-0.5B, 20 steps, RTX 3070 | 29 s, 2.0 GB peak VRAM |
+| `infer.py` bf16 inference, 0.5B / 1.5B | 68 / 47 tok/s |
 
 ## Operate
 
@@ -82,6 +88,8 @@ sudo systemctl restart vllm-chat vllm-autocomplete
 
 * 8 GB cards: 7B models need 4-bit weights (AWQ/GPTQ); 3B fits in fp16; LoRA training is realistic up to ~1.5B.
 * The RTX 2080 (Turing) has no bf16: serve with `--dtype half` (already set in its unit file).
+* No CUDA toolkit is installed on the VM, so the unit files set `VLLM_USE_FLASHINFER_SAMPLER=0`; FlashInfer's
+  sampler would otherwise try to JIT-compile a kernel with nvcc and crash the engine at start-up.
 * The Trainer will try to data-parallel across both GPUs; the scripts pin `CUDA_VISIBLE_DEVICES=0` by default.
 * Passing a consumer GPU through **two** hypervisor layers (e.g. a Nova compute node that is itself a VM) does not
   work: the driver fails with `RmInitAdapter failed (0x62:0x56)`. See `docs/`.
