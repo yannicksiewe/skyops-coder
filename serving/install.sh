@@ -40,13 +40,17 @@ if ! command -v docker >/dev/null; then
   sudo usermod -aG docker ubuntu
 fi
 sudo docker rm -f open-webui >/dev/null 2>&1 || true
+# Only the chat endpoint is exposed to the UI: the FIM model is not a chat model, and the UI's "Arena" feature
+# would otherwise route chats (and tool definitions) to it, which the FIM server rejects with HTTP 400.
 sudo docker run -d --name open-webui --restart unless-stopped --network host \
   -v open-webui:/app/backend/data \
   -e PORT=3000 \
-  -e OPENAI_API_BASE_URLS="http://127.0.0.1:8000/v1;http://127.0.0.1:8001/v1" \
-  -e OPENAI_API_KEYS="$VLLM_API_KEY;$VLLM_API_KEY" \
+  -e OPENAI_API_BASE_URLS="http://127.0.0.1:8000/v1" \
+  -e OPENAI_API_KEYS="$VLLM_API_KEY" \
   -e ENABLE_OLLAMA_API=false -e WEBUI_AUTH=true \
-  ghcr.io/open-webui/open-webui:main >/dev/null
+  -e ENABLE_EVALUATION_ARENA_MODELS=false \
+  -e ENABLE_FOLLOW_UP_GENERATION=false \
+  ghcr.io/open-webui/open-webui:${OPEN_WEBUI_TAG:-v0.11.3} >/dev/null
 
 log "Waiting for the chat endpoint"
 for i in $(seq 1 90); do curl -s -H "Authorization: Bearer $VLLM_API_KEY" localhost:8000/v1/models | grep -q "$CHAT_MODEL" && break; sleep 5; done

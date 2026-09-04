@@ -6,8 +6,22 @@ ready-to-use copies of every client file to `clients/local/` (git-ignored).
 
 ## 1. Web chat (nothing to install)
 
-Open `http://<VM_IP>:3000`. The first account created becomes admin. Both models appear in the model picker:
-`coder-chat` for real work, `coder-fim` is the raw autocomplete model (not useful for chat).
+Open `http://<VM_IP>:3000`. The first account created becomes admin. The model picker shows `coder-chat`; the
+autocomplete model is deliberately not connected to the UI (it is not a chat model).
+
+What this UI can and cannot do with the current models:
+
+* **Text and code only.** Qwen2.5-Coder is a text model: it cannot see attached images and cannot generate images.
+  Vision would need a VL model (e.g. `Qwen/Qwen2.5-VL-3B-Instruct-AWQ`) in place of one of the two; image
+  generation would need a diffusion backend (ComfyUI / AUTOMATIC1111) that Open WebUI can be pointed at.
+* **Tool calling** works on `coder-chat` (hermes parser). In the chat "Controls" panel leave *Function Calling*
+  on *Default*; *Native* only makes sense with tools/functions configured in the workspace.
+* **Microphone / voice input** needs a secure origin. Browsers allow it only on `https://` or `localhost`; over
+  plain `http://<VM_IP>:3000` you get "Only secure origins are allowed". Either put a TLS reverse proxy in front
+  (Caddy with a LAN certificate), or for testing enable `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
+  for `http://<VM_IP>:3000`.
+* The "Arena" (random model comparison) and auto-generated "Follow up" questions are disabled by the install
+  script (`ENABLE_EVALUATION_ARENA_MODELS=false`, `ENABLE_FOLLOW_UP_GENERATION=false`).
 
 ## 2. VS Code / JetBrains with Continue
 
@@ -92,3 +106,4 @@ Re-running `serving/install.sh` is safe; it keeps the existing key and only re-d
 | `Could not find nvcc` in the log | the unit must have `VLLM_USE_FLASHINFER_SAMPLER=0` (already set) |
 | 401 from the API | wrong or missing `Authorization: Bearer` header |
 | autocomplete returns chatty prose | you are hitting `coder-chat`; autocomplete must use `coder-fim` on :8001 with FIM tokens |
+| web UI: `'JSONResponse' object has no attribute 'body_iterator'` | the UI got an HTTP 400 from a model server and its error path crashed; `docker logs open-webui \| grep upstream_error` shows the real reason (seen: tool definitions sent to the FIM server) |

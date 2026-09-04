@@ -7,3 +7,4 @@ __pycache__/
 .env
 clients/local/
 .idea/
+.aider*
