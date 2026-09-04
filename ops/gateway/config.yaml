@@ -14,8 +14,16 @@ model_list:
 litellm_settings:
   drop_params: true
   callbacks: ["prometheus"]          # /metrics on the proxy port
-  # ops/langfuse/install.sh adds:  success_callback/failure_callback: ["langfuse"]  (traces with content)
+  success_callback: ["langfuse"]     # traces with content -> Langfuse (keys in litellm.env, set by ops/langfuse/install.sh)
+  failure_callback: ["langfuse"]     # remove both lines to keep accounting without content logging
   request_timeout: 600
+
+guardrails:
+  - guardrail_name: secrets
+    litellm_params:
+      guardrail: secrets_guardrail.SecretsGuardrail   # ops/gateway/guardrails/secrets_guardrail.py, mounted at /app
+      mode: pre_call
+      default_on: true
 
 general_settings:
   user_header_name: X-OpenWebUI-User-Email   # Open WebUI forwards the logged-in user -> per-user attribution (end_user)

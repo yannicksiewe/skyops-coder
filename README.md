@@ -43,7 +43,7 @@ and survives reboots.
 | `agents/` | AI code review, architecture review and issue-to-PR agents (local model, stdlib only, unit-tested). |
 | `.github/workflows/` | `ci`, `ai-code-review`, `ai-architecture-review`, `ai-task`, `cd`; all run on the office runner. |
 | `ops/runner/`, `ops/monitoring/`, `ops/backup/` | Self-hosted runner, Prometheus/Grafana stack, encrypted nightly backups. |
-| `ops/gateway/`, `ops/langfuse/` | LiteLLM gateway (keys, budgets, per-user token/latency accounting) and Langfuse (traces with content). |
+| `ops/gateway/`, `ops/langfuse/` | LiteLLM gateway (keys, budgets, per-user token/latency accounting, **secrets redaction guardrail**) and Langfuse (traces with content). |
 | `docs/governance.md` | What is measured and stored about usage, budgets in token units, privacy and retention. |
 | `docs/gpu-passthrough-troubleshooting.md` | How a "healthy" GPU can be unusable in a VM, and how to prove why. |
 

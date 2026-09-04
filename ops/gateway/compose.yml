@@ -20,6 +20,9 @@ services:
     env_file: /etc/litellm/litellm.env
     volumes:
       - ./config.yaml:/app/config.yaml:ro
+      - ./guardrails/secrets_guardrail.py:/app/secrets_guardrail.py:ro
+    environment:
+      SECRETS_GUARDRAIL_MODE: ${SECRETS_GUARDRAIL_MODE:-redact}   # redact | block
     command: ["--config", "/app/config.yaml", "--host", "127.0.0.1", "--port", "4000"]
 volumes:
   gateway-pg:

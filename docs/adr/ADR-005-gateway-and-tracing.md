@@ -11,6 +11,7 @@ person, time to reply, and the ability to inspect request and response content a
   accounting via the forwarded Open WebUI user header, Prometheus metrics, admin UI).
 * **Langfuse v3 self-hosted** for traces with content, fed by the gateway's callback; scores for quality.
 * All clients go through the gateway; raw vLLM ports remain for emergencies and are not exposed by name.
+* A pre-call **secrets guardrail** in the gateway redacts (or blocks) credentials before the model and before tracing.
 
 ## Alternatives considered
 * Only vLLM metrics + Open WebUI's DB: no per-user token view for API clients, no content search, no budgets.

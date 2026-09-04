@@ -72,10 +72,6 @@ SEC=$(sudo grep '^LANGFUSE_INIT_PROJECT_SECRET_KEY=' /etc/langfuse/langfuse.env 
 if ! sudo grep -q '^LANGFUSE_PUBLIC_KEY=' /etc/litellm/litellm.env; then
   printf 'LANGFUSE_PUBLIC_KEY=%s\nLANGFUSE_SECRET_KEY=%s\nLANGFUSE_HOST=http://127.0.0.1:3002\n' "$PUB" "$SEC" | sudo tee -a /etc/litellm/litellm.env >/dev/null
 fi
-CFG="$(dirname "$0")/../gateway/config.yaml"
-if ! grep -q 'success_callback: \["langfuse"\]' "$CFG"; then
-  sed -i 's|^  # ops/langfuse/install.sh adds:.*|  success_callback: ["langfuse"]     # traces with content -> Langfuse (installed by ops/langfuse/install.sh)\n  failure_callback: ["langfuse"]|' "$CFG"
-fi
 ( cd "$(dirname "$0")/../gateway" && sudo docker compose -f compose.yml up -d --force-recreate litellm >/dev/null 2>&1 )
 
 log "Caddy host langfuse.$ZONE"

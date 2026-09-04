@@ -20,6 +20,7 @@ body if they set it).
 | Tokens per user / model / client, last day / week | same dashboard (tables) or `litellm_input_tokens_metric_total` + `litellm_output_tokens_metric_total` by `end_user`, `model`, `api_key_alias` |
 | Time to reply, p50/p95, per model | same dashboard (`litellm_request_total_latency_metric`, `litellm_llm_api_latency_metric`); TTFT per model in the **vLLM** dashboard |
 | What exactly was asked and answered, by whom, how long it took | Langfuse -> Traces (filter by user, model, latency, date; full text search) |
+| Who pasted secrets, how often, which kind? | Langfuse -> Traces, filter tag `secrets-redacted` / `secret:<type>`; gateway log |
 | Was the answer good? | Langfuse scores: thumbs from reviewers, or automated scoring later; Open WebUI's own thumbs up/down stay in its DB |
 | Who is over budget? | gateway admin UI -> Keys / Users; metric `litellm_remaining_api_key_budget_metric` |
 | Failures and their causes | dashboard *Failed requests*; Langfuse traces with `level=ERROR` |
@@ -43,6 +44,31 @@ curl -s -X POST localhost:4000/key/generate -H "Authorization: Bearer $MASTER" -
 ```
 Per-user limits for web users: `POST /user/new` with `user_id` = their e-mail and `max_budget`; the gateway matches the
 forwarded e-mail. Or do it in the admin UI (Users tab).
+
+## Secrets in prompts: detected and redacted at the gateway, before the model and before Langfuse
+
+Langfuse only records; it cannot stop a password from reaching the model. The gateway can, because it sees every
+request first. `ops/gateway/guardrails/secrets_guardrail.py` runs as a LiteLLM **pre-call guardrail** on every
+request (chat, completions, agents, review diffs):
+
+* Detects: AWS / GitHub / Slack / Google / OpenAI-style API keys, JWTs, private-key blocks, credentials inside
+  URLs (`scheme://user:pass@host`), `password: ...` / `api_key=...` style assignments, and high-entropy strings next
+  to words like key/secret/token. Placeholders (`${VAR}`, `<your-token>`, `os.environ[...]`) are left alone.
+* **Redact mode (default):** the secret is replaced by `[REDACTED_<TYPE>]`. The model answers on the redacted text;
+  Langfuse stores only the redacted text; the trace gets the tags `secrets-redacted` and `secret:<type>`, so
+  Langfuse can list who sends secrets, how often, and of which kind (filter by tag; the user is attributed).
+* **Block mode:** `SECRETS_GUARDRAIL_MODE=block` in `ops/gateway/compose.yml` (or the shell) returns HTTP 400 with
+  an explanation instead of forwarding. Use it once the team has seen the redaction reports for a while.
+* Verified end to end: a prompt containing an AWS key id and a password reached the model as
+  `aws_access_key_id = [REDACTED_AWS_ACCESS_KEY]`, `password: [REDACTED_PASSWORD_ASSIGNMENT]`, and the Langfuse trace
+  stores exactly that, tagged `secret:aws_access_key`, `secret:password_assignment`.
+* Limits: pattern-based; unusual credential formats or secrets split across messages can slip through. Extend
+  `PATTERNS` and add a test in `ops/gateway/guardrails/tests/` (CI runs them). The gateway log line
+  `[secrets-guardrail] ... user=... found=...` is the audit trail on the server side.
+
+What the model can "read": nothing by itself. It has no tools, no file or network access; it only sees the prompt
+that a client sends (chat text, attached images, the diff the review agent posts). Governance is therefore about
+what people and agents put into prompts, which is what the guardrail and the traces cover.
 
 ## Privacy and retention: decide, then write it down here
 
