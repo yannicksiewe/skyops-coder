@@ -4,6 +4,15 @@
 Ubuntu 24.04, NVIDIA 580, vLLM 0.28. Numbers are from this repository's scripts (`research/bench.py`,
 `serving/`), not from vendor claims. Last update: 2026-09-04.*
 
+## 0. Findings in one paragraph
+
+On two 8 GB cards the best working setup is **one 7B coder (4-bit) + a 0.5B autocomplete model + a 3B vision model**,
+which is what runs today. The newer Qwen3.5 family does *not* fit: its 248k-token vocabulary keeps 4 GB of
+embedding/output weights in fp16 regardless of quantization, so the "9B" AWQ checkpoint is 12 GB on disk and even the
+"4B" one is 5.7 GB. GLM-5.x (320B MoE) is out of reach by a factor of ten; GLM-4-9B is the only GLM that fits,
+refuses fp16 (so it cannot run on the Turing card at all) and is a 2025 model. Fit is decided by **vocabulary size
+and kv-heads**, not by the parameter count on the label.
+
 ## 1. The sizing rule that decides everything
 
 VRAM per model ≈ **weights + KV cache + ~0.5 GB working set**.
@@ -15,9 +24,14 @@ VRAM per model ≈ **weights + KV cache + ~0.5 GB working set**.
 | KV cache for N tokens | N × per-token | 16k tokens ≈ 0.9 GB; 27k tokens fit in the 1.4 GB left |
 | Concurrency | cache tokens ÷ tokens per request | 27k ÷ 16k ≈ 1.6 full-context requests |
 
-Consequences on an 8 GB card: **7-9B at 4-bit** with 8-16k context, or **3B at fp16**, or **1-2B with a huge
+Consequences on an 8 GB card: **7B at 4-bit** with 8-16k context, or **3B at fp16**, or **1-2B with a huge
 cache** (the autocomplete model: 0.5B fp16 = 1 GB weights, 135k cache tokens = 16 parallel editors).
 Models with grouped-query attention (small kv_heads) are what make 16k context possible at all.
+
+**The vocabulary trap (measured):** embeddings and the output head are never quantized by AWQ/GPTQ. With a 152k
+vocabulary (Qwen2.5) that is 2 × 152k × 3584 × 2 B ≈ 2.2 GB for a 7B model, already included in the 5.4 GB above.
+With 248k (Qwen3.5) and hidden 4096 it is ≈ 4 GB, and the whole 9B checkpoint lands at 12 GB on disk. Check
+`vocab_size` × `hidden_size` × 4 bytes before believing any "fits in 8 GB" claim.
 
 ## 2. What we run and what it measures
 
@@ -37,11 +51,22 @@ rate limiter, ...). It is deliberately small; it discriminates between "usable f
 | Model | Why interesting | Fits? | bench.py | tok/s | Notes |
 |---|---|---|---|---|---|
 | Qwen2.5-Coder-7B-AWQ (baseline) | current | yes | 6/8 | 82 | RTX 3070 |
-| Qwen3.5-9B-AWQ | one model for text **and** vision, thinking mode, newer | TRIAL_FITS | TRIAL_BENCH | TRIAL_TPS | TRIAL_NOTES |
+| Qwen3.5-9B-AWQ (QuantTrio) | one model for text **and** vision, thinking mode, newer | **no** | – | – | 12 GB on disk; OOM while *loading* on both cards. The 248k-token vocabulary keeps embedding + output matrices in fp16 (~2 GB each), the vision tower adds ~1 GB: "9B at 4-bit" is really ~9 GB |
+| Qwen3.5-4B-AWQ (QuantTrio) | small multimodal for the 2080 | **no** (2080) | – | – | 5.7 GB of weights for a "4B" model (same vocabulary effect); loads, but leaves no memory for the KV cache even text-only at 4k on the Turing card. Would need the 3070 = displacing the coder |
 | GLM-4-9B-0414 (bnb 4-bit) | the only GLM that fits | GLM_FITS | GLM_BENCH | GLM_TPS | GLM_NOTES |
 | GLM-5.x (Flash, 5.2, 5.3) | requested | **no**: 320B MoE, 18B active ≈ 160 GB at int4 | – | – | API only |
 | Qwen3.5-35B-A3B-GPTQ-Int4 | MoE, fast | no: ~19 GB | – | – | needs a 24 GB card |
-| Qwen3.5-4B-AWQ | small multimodal for the 2080 | ~2.5 GB | – | – | could replace vision + serve a second chat |
+
+## 3b. Recommendation for this hardware
+
+Keep **Qwen2.5-Coder-7B-Instruct-AWQ** as the team's chat/review/agent model. It is the strongest coder that fits
+an 8 GB card with a useful context, it supports tool calling, and it scores 6/8 on our benchmark at 82 tok/s.
+Keep the 0.5B FIM model and the 3B vision model on the second card. Re-evaluate when either (a) a Qwen3.5-class
+model appears with a quantized embedding/output head or a smaller vocabulary, or (b) a 24 GB card is added.
+
+Reproduce or extend the comparison yourself: `research/bench.py --base <url> --model <name>` (writes
+`research/results.jsonl`), `research/trial.sh <hf-model> <gpu> "<label>" [vllm args]` (downloads, serves on a
+scratch port, benchmarks, cleans up). Add a task to `TASKS` in `bench.py` when a real team problem exposes a gap.
 
 ## 4. "Can we run many models?"
 

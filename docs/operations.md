@@ -56,6 +56,14 @@ ssh ubuntu@<VM_IP> 'sudo install -m600 backup-age.key /etc/skyops/backup-age.key
 Restore proof: `ops/backup/restore_test.sh` restores the UI volume into a scratch volume and checks users/chats;
 run it after any change to the backup script. Last verified: 2026-09-04, `users=1 chats=4`, PASSED.
 
+## Disk housekeeping
+
+The 96 GB disk holds ~17 GB of production model weights, ~15 GB of Python environments and the Docker images.
+Model *trials* add 6-12 GB each and once filled the disk mid-download (the `DiskLow` alert covers this). After a
+trial: `rm -rf ~/.cache/huggingface/hub/models--<org>--<model>`; `research/trial.sh` does not delete downloads on
+purpose so a second run is fast. `sudo docker image prune -f` and `sudo journalctl --vacuum-size=200M` reclaim a
+few GB more. Keep >= 20 GB free before starting a trial.
+
 ## Routine
 * Weekly: glance at Grafana, `journalctl -u vllm-chat --since -7d | grep -c ERROR`, `df -h /`.
 * Monthly: `sudo apt-get update && sudo apt-get upgrade` (kernel updates rebuild the NVIDIA module via DKMS; reboot),
