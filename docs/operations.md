@@ -61,6 +61,12 @@ run it after any change to the backup script. Last verified: 2026-09-04, `users=
 See `docs/governance.md`. Health: `curl -s localhost:4000/health/liveliness`, `curl -s localhost:3002/api/public/health`.
 Both are Docker Compose stacks under `~/ops/gateway` and `~/ops/langfuse`; volumes are in the nightly backup.
 
+## GPU memory gotcha
+
+A vLLM engine that failed to start can leave a `VLLM::EngineCore` process holding the whole card; every later start
+then fails with "No available memory for the cache blocks". Check `nvidia-smi --query-compute-apps=pid,used_memory --format=csv`
+and kill processes that do not belong to a running service before retrying.
+
 ## Disk housekeeping
 
 The 96 GB disk holds ~17 GB of production model weights, ~15 GB of Python environments and the Docker images.

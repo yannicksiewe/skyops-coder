@@ -79,8 +79,8 @@ What that buys you:
 | | chat (GPU 0) | autocomplete (GPU 1) |
 |---|---|---|
 | model | Qwen2.5-Coder-7B-Instruct, AWQ | Qwen2.5-Coder-0.5B base (FIM-trained) |
-| context per request | 16,384 tokens | 8,192 tokens |
-| KV cache capacity | 27k tokens ≈ 1.6 requests at full context | see service log at start-up |
+| context per request | 24,576 tokens (2k prefill chunks, 4 seqs) | 8,192 tokens |
+| KV cache capacity | 30k tokens ≈ 1.2 requests at full context | see service log at start-up |
 | max concurrent sequences | 8 | 16 |
 | single-stream speed | 81 tok/s | 48-token completion in ~350 ms |
 | dtype | int4 weights, fp16 compute | fp16 (Turing has no bf16) |

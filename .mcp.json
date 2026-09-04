@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "skyops-local": {
+      "command": "uv",
+      "args": ["run", "--quiet", "--with", "mcp", "clients/mcp/skyops_mcp.py"],
+      "env": {
+        "SKYOPS_API_BASE": "https://api.skyops.lan/v1",
+        "SKYOPS_API_KEY": "${SKYOPS_API_KEY}",
+        "SKYOPS_CA": "clients/local/skyops.lan-root.crt"
+      }
+    }
+  }
+}

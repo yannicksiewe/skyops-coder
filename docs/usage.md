@@ -88,6 +88,36 @@ curl http://<VM_IP>:8001/v1/completions -H "Authorization: Bearer <VLLM_API_KEY>
 Tool calling is enabled on `coder-chat` (`--enable-auto-tool-choice --tool-call-parser hermes`), so agent
 frameworks that send `tools=[...]` work.
 
+## 4b. Claude Code
+
+Two ways, for two different purposes.
+
+**A. Claude Code keeps its own Claude models, and gets the office models as tools (recommended).**
+The repo ships an MCP server (`clients/mcp/skyops_mcp.py`, config in `.mcp.json`) exposing `local_ask`,
+`local_review`, `local_describe_image` and `local_models`. Claude decides when to use them; the data sent to those
+tools stays on the office server and is accounted and traced like everything else.
+```bash
+export SKYOPS_API_KEY=<gateway key>          # e.g. from clients/local/aider.env
+claude                                        # from the repo root: .mcp.json is picked up (approve the server once)
+# then: "review this diff with the local model", "describe screenshot.png with local_describe_image", ...
+```
+Verified: `claude -p "Use local_models" --mcp-config .mcp.json` returned `coder-chat, coder-vision, coder-fim`.
+
+**B. Claude Code driven entirely by the office model (experimental, for offline/private use only).**
+The gateway speaks the Anthropic Messages API, so Claude Code can be pointed at it:
+```bash
+export ANTHROPIC_BASE_URL=https://api.skyops.lan ANTHROPIC_AUTH_TOKEN=<gateway key>
+export ANTHROPIC_MODEL=coder-chat ANTHROPIC_SMALL_FAST_MODEL=coder-chat
+export NODE_EXTRA_CA_CERTS=clients/local/skyops.lan-root.crt        # the office CA, for Node
+export CLAUDE_CODE_MAX_OUTPUT_TOKENS=1024 CLAUDE_CODE_MAX_CONTEXT_TOKENS=24000
+claude --model coder-chat --tools "Read,Edit,Bash"                   # restrict tools: the tool list eats context
+```
+What to expect: it connects, authenticates, streams, and structured tool calls work (a custom vLLM parser,
+`serving/coder_tool_parser.py`, turns the Coder model's JSON blocks into real tool calls). But Claude Code's system
+prompt plus tool schemas is ~12-23k tokens and the 7B model has a 24k window, so there is little room left, and a
+7B model often answers instead of using tools (in the test it "described" README.md without reading it). Treat
+B as a demo of the API compatibility; use A for real work.
+
 ## 5. Fine-tuning your own adapter
 
 ```bash

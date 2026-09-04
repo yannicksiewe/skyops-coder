@@ -35,6 +35,8 @@ and survives reboots.
 | `clients/aider.env` | Terminal coding agent config. |
 | `tools/gpu_passthrough_check.sh` | Host-side diagnostic for GPU passthrough (see docs). |
 | `clients/render.sh` | Writes ready-to-use copies of the client files to `clients/local/` (git-ignored). |
+| `clients/mcp/`, `.mcp.json` | MCP server: Claude Code (or any MCP client) uses the office models as tools (`local_ask`, `local_review`, `local_describe_image`). |
+| `serving/coder_tool_parser.py` | vLLM tool-call parser for Qwen2.5-Coder (fenced-JSON tool calls -> OpenAI/Anthropic tool calls). |
 | `docs/architecture.md` | Deployment picture: layers, which process owns which GPU, memory budgets, ports. |
 | `docs/usage.md` | How to use it from the browser, VS Code, aider, SDKs; fine-tuning. |
 | `docs/operations.md` | CI/CD on the office runner, AI review/agents for the team, monitoring, backup & recovery runbook. |
@@ -88,7 +90,7 @@ CUDA_VISIBLE_DEVICES=1 python train.py ...                            # use the 
 
 | Workload | Result |
 |---|---|
-| Chat, Qwen2.5-Coder-7B-AWQ on RTX 3070 via vLLM, single request | 81 tok/s, 16k context, 7.3 GB VRAM |
+| Chat, Qwen2.5-Coder-7B-AWQ on RTX 3070 via vLLM, single request | 81 tok/s, 24k context, 7.5 GB VRAM |
 | Autocomplete, Qwen2.5-Coder-0.5B on RTX 2080 (25% of the card) | sub-second FIM completions |
 | Vision, Qwen2.5-VL-3B-AWQ on RTX 2080 (68% of the card), 1024px screenshot | 2-sentence description in 1.7 s |
 | Speech-to-text, Whisper small on 14 vCPU | ~2 s per utterance, language auto-detected |
