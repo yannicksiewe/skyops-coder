@@ -1,14 +1,15 @@
 # skyops-coder
 
 Self-hosted coding assistant on a two-GPU VM: a 7B coder model for chat, edits and agents, a small
-fill-in-the-middle model for inline autocomplete, an OpenAI-compatible API with a key, a web chat UI,
+fill-in-the-middle model for inline autocomplete, a 3B vision model for screenshots, server-side Whisper for voice, an OpenAI-compatible API with a key, a web chat UI,
 and a LoRA fine-tuning pipeline for training your own adapters. Everything runs as systemd services
 and survives reboots.
 
 ```
                  ┌──────────────────────────── VM (Ubuntu 24.04) ────────────────────────────┐
  VS Code/Continue│  :8000  vllm-chat          GPU 0  RTX 3070 8 GB   Qwen2.5-Coder-7B-AWQ    │
- aider / any SDK ┼─►:8001  vllm-autocomplete  GPU 1  RTX 2080 8 GB   Qwen2.5-Coder-1.5B FIM  │
+ aider / any SDK ┼─►:8001  vllm-autocomplete  GPU 1  RTX 2080 8 GB   Qwen2.5-Coder-0.5B FIM  │
+                 │  :8002  vllm-vision        GPU 1  (shared)         Qwen2.5-VL-3B-AWQ       │
  browser         │  :3000  open-webui  (docker) ──► both endpoints                             │
                  │  ~/ml   train.py / infer.py   LoRA + QLoRA fine-tuning (torch cu128)        │
                  └───────────────────────────────────────────────────────────────────────────┘
@@ -76,7 +77,9 @@ CUDA_VISIBLE_DEVICES=1 python train.py ...                            # use the 
 | Workload | Result |
 |---|---|
 | Chat, Qwen2.5-Coder-7B-AWQ on RTX 3070 via vLLM, single request | 81 tok/s, 16k context, 7.3 GB VRAM |
-| Autocomplete, Qwen2.5-Coder-1.5B on RTX 2080, 48-token FIM completion | 350 ms end to end |
+| Autocomplete, Qwen2.5-Coder-0.5B on RTX 2080 (25% of the card) | sub-second FIM completions |
+| Vision, Qwen2.5-VL-3B-AWQ on RTX 2080 (68% of the card), 1024px screenshot | 2-sentence description in 1.7 s |
+| Speech-to-text, Whisper small on 14 vCPU | ~2 s per utterance, language auto-detected |
 | LoRA training, Qwen2.5-0.5B, 20 steps, RTX 3070 | 29 s, 2.0 GB peak VRAM |
 | `infer.py` bf16 inference, 0.5B / 1.5B | 68 / 47 tok/s |
 

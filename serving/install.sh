@@ -6,15 +6,17 @@ export DEBIAN_FRONTEND=noninteractive
 export PATH="$HOME/.local/bin:$PATH"
 VENV="$HOME/vllm/.venv"
 CHAT_MODEL="${CHAT_MODEL:-Qwen/Qwen2.5-Coder-7B-Instruct-AWQ}"
-FIM_MODEL="${FIM_MODEL:-Qwen/Qwen2.5-Coder-1.5B}"
+FIM_MODEL="${FIM_MODEL:-Qwen/Qwen2.5-Coder-0.5B}"
+VISION_MODEL="${VISION_MODEL:-Qwen/Qwen2.5-VL-3B-Instruct-AWQ}"
 log() { echo -e "\n\033[1;32m==> $*\033[0m"; }
 
 log "API key"
 if [ ! -f /etc/vllm.env ]; then
   KEY="sk-skyops-$(openssl rand -hex 16)"
-  printf 'VLLM_API_KEY=%s\nCHAT_MODEL=%s\nFIM_MODEL=%s\nHF_HOME=/home/ubuntu/.cache/huggingface\n' "$KEY" "$CHAT_MODEL" "$FIM_MODEL" | sudo tee /etc/vllm.env >/dev/null
+  printf 'VLLM_API_KEY=%s\nCHAT_MODEL=%s\nFIM_MODEL=%s\nVISION_MODEL=%s\nHF_HOME=/home/ubuntu/.cache/huggingface\n' "$KEY" "$CHAT_MODEL" "$FIM_MODEL" "$VISION_MODEL" | sudo tee /etc/vllm.env >/dev/null
   sudo chmod 640 /etc/vllm.env; sudo chown root:ubuntu /etc/vllm.env
 fi
+grep -q '^VISION_MODEL=' /etc/vllm.env || echo "VISION_MODEL=$VISION_MODEL" | sudo tee -a /etc/vllm.env >/dev/null
 # shellcheck disable=SC1091
 . /etc/vllm.env
 
@@ -25,14 +27,15 @@ mkdir -p "$HOME/vllm"
 source "$VENV/bin/activate"
 uv pip install -q vllm huggingface_hub hf_xet
 
-log "Pre-download models (chat: $CHAT_MODEL, autocomplete: $FIM_MODEL)"
-HF_XET_HIGH_PERFORMANCE=1 hf download "$CHAT_MODEL" >/dev/null
-HF_XET_HIGH_PERFORMANCE=1 hf download "$FIM_MODEL"  >/dev/null
+log "Pre-download models (chat: $CHAT_MODEL, autocomplete: $FIM_MODEL, vision: $VISION_MODEL)"
+HF_XET_HIGH_PERFORMANCE=1 hf download "$CHAT_MODEL"   >/dev/null
+HF_XET_HIGH_PERFORMANCE=1 hf download "$FIM_MODEL"    >/dev/null
+HF_XET_HIGH_PERFORMANCE=1 hf download "$VISION_MODEL" >/dev/null
 
 log "systemd services"
-sudo cp "$HOME/vllm/vllm-chat.service" "$HOME/vllm/vllm-autocomplete.service" /etc/systemd/system/
+sudo cp "$HOME/vllm/vllm-chat.service" "$HOME/vllm/vllm-autocomplete.service" "$HOME/vllm/vllm-vision.service" /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now vllm-chat vllm-autocomplete
+sudo systemctl enable --now vllm-chat vllm-autocomplete vllm-vision
 
 log "Docker + Open WebUI"
 if ! command -v docker >/dev/null; then
@@ -40,16 +43,17 @@ if ! command -v docker >/dev/null; then
   sudo usermod -aG docker ubuntu
 fi
 sudo docker rm -f open-webui >/dev/null 2>&1 || true
-# Only the chat endpoint is exposed to the UI: the FIM model is not a chat model, and the UI's "Arena" feature
+# Chat + vision endpoints are exposed to the UI; the FIM model is not a chat model, and the UI's "Arena" feature
 # would otherwise route chats (and tool definitions) to it, which the FIM server rejects with HTTP 400.
 sudo docker run -d --name open-webui --restart unless-stopped --network host \
   -v open-webui:/app/backend/data \
   -e PORT=3000 \
-  -e OPENAI_API_BASE_URLS="http://127.0.0.1:8000/v1" \
-  -e OPENAI_API_KEYS="$VLLM_API_KEY" \
+  -e OPENAI_API_BASE_URLS="http://127.0.0.1:8000/v1;http://127.0.0.1:8002/v1" \
+  -e OPENAI_API_KEYS="$VLLM_API_KEY;$VLLM_API_KEY" \
   -e ENABLE_OLLAMA_API=false -e WEBUI_AUTH=true \
   -e ENABLE_EVALUATION_ARENA_MODELS=false \
   -e ENABLE_FOLLOW_UP_GENERATION=false \
+  -e WHISPER_MODEL="${WHISPER_MODEL:-small}" -e WHISPER_MODEL_AUTO_UPDATE=true -e WHISPER_VAD_FILTER=true \
   ghcr.io/open-webui/open-webui:${OPEN_WEBUI_TAG:-v0.11.3} >/dev/null
 
 log "Waiting for the chat endpoint"

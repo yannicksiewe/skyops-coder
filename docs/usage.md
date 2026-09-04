@@ -13,6 +13,7 @@ ready-to-use copies of every client file to `clients/local/` (git-ignored).
 | `https://coder.skyops.lan` | Open WebUI | needs the resolver entry below |
 | `https://api.skyops.lan/v1` | chat API (`coder-chat`) | same key as port 8000 |
 | `https://fim.skyops.lan/v1` | autocomplete API (`coder-fim`) | |
+| `https://vision.skyops.lan/v1` | vision API (`coder-vision`) | images as OpenAI `image_url` content parts |
 | `https://gpu-direct.local` | Open WebUI | mDNS; works only on the same L2 network as the VM |
 | `http://<VM_IP>:3000 / :8000 / :8001` | everything, unchanged | still available without TLS |
 
@@ -31,9 +32,14 @@ autocomplete model is deliberately not connected to the UI (it is not a chat mod
 
 What this UI can and cannot do with the current models:
 
-* **Text and code only.** Qwen2.5-Coder is a text model: it cannot see attached images and cannot generate images.
-  Vision would need a VL model (e.g. `Qwen/Qwen2.5-VL-3B-Instruct-AWQ`) in place of one of the two; image
-  generation would need a diffusion backend (ComfyUI / AUTOMATIC1111) that Open WebUI can be pointed at.
+* **Images: pick `coder-vision`.** `coder-chat` (Qwen2.5-Coder) is text-only and answers "not a multimodal model"
+  to attachments. `coder-vision` (Qwen2.5-VL-3B, GPU 1, port 8002) reads screenshots, diagrams and photos: paste an
+  image, ask "what error is this?" / "describe this UI". One image per message, downscaled to ~600k pixels; 4k-token context. Neither model *generates*
+  images; that would need a diffusion backend (ComfyUI / AUTOMATIC1111) that Open WebUI can be pointed at.
+* **Voice.** Speech-to-text runs on the VM (Whisper `small`, auto-detects the spoken language per utterance,
+  ~2 s). In *Settings -> Audio* keep "Speech-to-Text Engine" on *Default* (server), not *Web API* (that is the
+  browser's own recogniser, fixed to one language). For more accuracy set `WHISPER_MODEL=medium` before running
+  `serving/install.sh` (~5 s per utterance on CPU).
 * **Tool calling** works on `coder-chat` (hermes parser). In the chat "Controls" panel leave *Function Calling*
   on *Default*; *Native* only makes sense with tools/functions configured in the workspace.
 * **Microphone / voice input** needs a secure origin. Browsers allow it only on `https://` or `localhost`; over
@@ -50,7 +56,7 @@ What this UI can and cannot do with the current models:
 3. Reload the editor. You now have:
    * **Chat** (Cmd/Ctrl+L): ask about the open file, selected code, or `@codebase`.
    * **Edit** (Cmd/Ctrl+I): select code, describe the change, review the diff, apply.
-   * **Tab autocomplete**: ghost-text suggestions as you type, served by the 1.5B model on GPU 1.
+   * **Tab autocomplete**: ghost-text suggestions as you type, served by the 0.5B FIM model on GPU 1.
    * Context providers enabled in the config: `@code`, `@docs`, `@diff`, `@terminal`, `@problems`, `@folder`, `@codebase`.
 
 ## 3. Terminal coding agent (aider)
@@ -113,7 +119,7 @@ curl -s -H "Authorization: Bearer $KEY" localhost:8000/v1/models   # health
 
 Change a model: edit `CHAT_MODEL` or `FIM_MODEL` in `/etc/vllm.env`, then `sudo systemctl restart vllm-chat`
 (or `vllm-autocomplete`). vLLM downloads the new weights on first start. Candidates that fit 8 GB: any
-`*-7B-Instruct-AWQ` / `-GPTQ-Int4` for chat; `Qwen2.5-Coder-0.5B` for even faster autocomplete.
+`*-7B-Instruct-AWQ` / `-GPTQ-Int4` for chat; `Qwen2.5-Coder-1.5B` for better autocomplete if you drop the vision model.
 
 Re-running `serving/install.sh` is safe; it keeps the existing key and only re-does what is missing.
 

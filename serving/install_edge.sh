@@ -51,6 +51,9 @@ api.${ZONE} {
 fim.${ZONE} {
 	reverse_proxy 127.0.0.1:8001
 }
+vision.${ZONE} {
+	reverse_proxy 127.0.0.1:8002
+}
 CONF
 sudo caddy validate --config /etc/caddy/Caddyfile >/dev/null
 sudo systemctl enable --now caddy >/dev/null

@@ -1,0 +1,21 @@
+[Unit]
+Description=vLLM vision-language model (GPU 1, shares the card with autocomplete)
+After=network-online.target vllm-autocomplete.service
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+EnvironmentFile=/etc/vllm.env
+Environment=CUDA_DEVICE_ORDER=PCI_BUS_ID
+Environment=CUDA_VISIBLE_DEVICES=1
+Environment=VLLM_USE_FLASHINFER_SAMPLER=0
+ExecStart=/home/ubuntu/vllm/.venv/bin/vllm serve ${VISION_MODEL} \
+  --host 0.0.0.0 --port 8002 --api-key ${VLLM_API_KEY} \
+  --served-model-name coder-vision \
+  --dtype half --max-model-len 4096 --max-num-seqs 2 --gpu-memory-utilization 0.68 \
+  --limit-mm-per-prompt '{"image": 1}' --mm-processor-kwargs '{"max_pixels": 602112}'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
