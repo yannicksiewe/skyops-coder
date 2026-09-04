@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "sessionId": "7ac2442e-db1b-4729-8a81-ea4fe49d2131",
+  "changes": [
+    {
+      "promptIndex": 1,
+      "promptText": "Use the skyops-local MCP tool local_models and reply with exactly what it returns.",
+      "filesChanged": [],
+      "diff": ""
+    }
+  ]
+}

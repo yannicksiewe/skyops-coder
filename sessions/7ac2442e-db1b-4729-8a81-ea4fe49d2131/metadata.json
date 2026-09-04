@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "sessionId": "7ac2442e-db1b-4729-8a81-ea4fe49d2131",
+  "model": "claude-fable-5-1",
+  "startedAt": "2026-09-04T14:45:04.574Z",
+  "endedAt": "2026-09-04T14:46:01.873Z",
+  "durationMs": 57294,
+  "status": "running",
+  "tokens": {
+    "total": 107,
+    "input": 34,
+    "output": 73
+  },
+  "cost": {
+    "usd": 0.8369
+  },
+  "toolCalls": 1,
+  "lines": {
+    "added": 253,
+    "removed": 6
+  },
+  "filesChanged": [
+    ".github/workflows/ci.yml",
+    ".mcp.json",
+    "CLAUDE.md",
+    "README.md",
+    "clients/mcp/skyops_mcp.py",
+    "docs/architecture.md",
+    "docs/operations.md",
+    "docs/usage.md",
+    "serving/coder_tool_parser.py",
+    "serving/tests/test_coder_tool_parser.py",
+    "serving/vllm-chat.service"
+  ],
+  "git": {
+    "branch": "main",
+    "headBefore": "cf4628c72400440fe8d8d5958228deeae16a6e80",
+    "headAfter": "96f03deb8a93985e53ab640439177bbab129a577",
+    "commitShas": [
+      "96f03deb8a93985e53ab640439177bbab129a577"
+    ]
+  },
+  "summary": "coder-chat, coder-vision, coder-fim",
+  "originUrl": "https://getorigin.io/sessions/7ac2442e-db1b-4729-8a81-ea4fe49d2131"
+}
