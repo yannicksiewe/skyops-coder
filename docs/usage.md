@@ -35,7 +35,7 @@ What this UI can and cannot do with the current models:
 
 * **Images: pick `coder-vision`.** `coder-chat` (Qwen2.5-Coder) is text-only and answers "not a multimodal model"
   to attachments. `coder-vision` (Qwen2.5-VL-3B, GPU 1, port 8002) reads screenshots, diagrams and photos: paste an
-  image, ask "what error is this?" / "describe this UI". One image per message, downscaled to ~600k pixels; 4k-token context. Neither model *generates*
+  image, ask "what error is this?" / "describe this UI". Up to 3 images per request (the UI resends earlier images of the same chat, so start a new chat for a new topic); each downscaled to ~600k pixels; 4k-token context. Neither model *generates*
   images; that would need a diffusion backend (ComfyUI / AUTOMATIC1111) that Open WebUI can be pointed at.
 * **Voice.** Speech-to-text runs on the VM (Whisper `small`, auto-detects the spoken language per utterance,
   ~2 s). In *Settings -> Audio* keep "Speech-to-Text Engine" on *Default* (server), not *Web API* (that is the
