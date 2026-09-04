@@ -46,7 +46,8 @@ serving/deploy_serving.sh ubuntu@<VM_IP>
 #    web:      http://<VM_IP>:3000
 #    clients/render.sh <VM_IP> <VLLM_API_KEY>      -> clients/local/*  (filled in, git-ignored)
 #    VS Code:  install "Continue", cp clients/local/continue-config.yaml ~/.continue/config.yaml
-#    terminal: source clients/local/aider.env && aider     (run from the repo root)
+#    terminal: uv tool install --python 3.12 aider-chat   (once)
+#              source clients/local/aider.env && aider     (run from the repo root)
 #    SDK:      base_url=http://<VM_IP>:8000/v1  model=coder-chat
 ```
 

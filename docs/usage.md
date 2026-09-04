@@ -22,7 +22,7 @@ Open `http://<VM_IP>:3000`. The first account created becomes admin. Both models
 ## 3. Terminal coding agent (aider)
 
 ```bash
-pip install aider-chat            # once, on your laptop
+uv tool install --python 3.12 aider-chat   # once, on your laptop (or: pipx install aider-chat)
 source clients/local/aider.env    # sets OPENAI_API_BASE / OPENAI_API_KEY / AIDER_MODEL
 cd <any git repo> && aider        # edits files and commits with the 7B model
 ```
