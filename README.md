@@ -27,6 +27,9 @@ and survives reboots.
 | `clients/continue-config.yaml` | VS Code / JetBrains "Continue" config: chat + autocomplete. |
 | `clients/aider.env` | Terminal coding agent config. |
 | `tools/gpu_passthrough_check.sh` | Host-side diagnostic for GPU passthrough (see docs). |
+| `clients/render.sh` | Writes ready-to-use copies of the client files to `clients/local/` (git-ignored). |
+| `docs/architecture.md` | Deployment picture: layers, which process owns which GPU, memory budgets, ports. |
+| `docs/usage.md` | How to use it from the browser, VS Code, aider, SDKs; fine-tuning; operations. |
 | `docs/gpu-passthrough-troubleshooting.md` | How a "healthy" GPU can be unusable in a VM, and how to prove why. |
 
 ## Quick start
@@ -41,9 +44,9 @@ serving/deploy_serving.sh ubuntu@<VM_IP>
 
 # 3. clients
 #    web:      http://<VM_IP>:3000
-#    VS Code:  install "Continue", copy clients/continue-config.yaml to ~/.continue/config.yaml,
-#              replace <VM_IP> and <VLLM_API_KEY>
-#    terminal: edit clients/aider.env, then:  source clients/aider.env && aider
+#    clients/render.sh <VM_IP> <VLLM_API_KEY>      -> clients/local/*  (filled in, git-ignored)
+#    VS Code:  install "Continue", cp clients/local/continue-config.yaml ~/.continue/config.yaml
+#    terminal: source clients/local/aider.env && aider     (run from the repo root)
 #    SDK:      base_url=http://<VM_IP>:8000/v1  model=coder-chat
 ```
 

@@ -1,0 +1,94 @@
+# Usage guide
+
+Replace `<VM_IP>` with the VM address and `<VLLM_API_KEY>` with the key from `/etc/vllm.env` on the VM
+(`ssh ubuntu@<VM_IP> sudo cat /etc/vllm.env`). Or run `clients/render.sh <VM_IP> <VLLM_API_KEY>` once: it writes
+ready-to-use copies of every client file to `clients/local/` (git-ignored).
+
+## 1. Web chat (nothing to install)
+
+Open `http://<VM_IP>:3000`. The first account created becomes admin. Both models appear in the model picker:
+`coder-chat` for real work, `coder-fim` is the raw autocomplete model (not useful for chat).
+
+## 2. VS Code / JetBrains with Continue
+
+1. Install the **Continue** extension.
+2. `cp clients/local/continue-config.yaml ~/.continue/config.yaml` (or copy `clients/continue-config.yaml` and fill in the placeholders).
+3. Reload the editor. You now have:
+   * **Chat** (Cmd/Ctrl+L): ask about the open file, selected code, or `@codebase`.
+   * **Edit** (Cmd/Ctrl+I): select code, describe the change, review the diff, apply.
+   * **Tab autocomplete**: ghost-text suggestions as you type, served by the 1.5B model on GPU 1.
+   * Context providers enabled in the config: `@code`, `@docs`, `@diff`, `@terminal`, `@problems`, `@folder`, `@codebase`.
+
+## 3. Terminal coding agent (aider)
+
+```bash
+pip install aider-chat            # once, on your laptop
+source clients/local/aider.env    # sets OPENAI_API_BASE / OPENAI_API_KEY / AIDER_MODEL
+cd <any git repo> && aider        # edits files and commits with the 7B model
+```
+
+## 4. From code (any OpenAI-compatible SDK)
+
+```python
+from openai import OpenAI
+client = OpenAI(base_url="http://<VM_IP>:8000/v1", api_key="<VLLM_API_KEY>")
+r = client.chat.completions.create(model="coder-chat",
+        messages=[{"role": "user", "content": "Write a Python LRU cache."}], max_tokens=400)
+print(r.choices[0].message.content)
+```
+
+Fill-in-the-middle on the autocomplete endpoint (raw completions API, Qwen FIM tokens):
+
+```bash
+curl http://<VM_IP>:8001/v1/completions -H "Authorization: Bearer <VLLM_API_KEY>" -H 'content-type: application/json' \
+  -d '{"model":"coder-fim","prompt":"<|fim_prefix|>def add(a, b):\n<|fim_suffix|>\nprint(add(1,2))<|fim_middle|>","max_tokens":64,"temperature":0}'
+```
+
+Tool calling is enabled on `coder-chat` (`--enable-auto-tool-choice --tool-call-parser hermes`), so agent
+frameworks that send `tools=[...]` work.
+
+## 5. Fine-tuning your own adapter
+
+```bash
+ssh ubuntu@<VM_IP>
+cd ~/ml                                    # venv auto-activates on login
+python train.py --steps 500                # LoRA on Qwen2.5-0.5B-Instruct, alpaca-cleaned, ~12 min on GPU 0
+python train.py --model Qwen/Qwen2.5-1.5B-Instruct --load-4bit --steps 500      # QLoRA
+python train.py --dataset <hf-dataset> --samples 20000                          # your own instruction data
+python infer.py --adapter outputs/lora --prompt "..."                           # test; base model comes from the adapter
+python infer.py --adapter outputs/lora --serve --port 8010                      # quick endpoint for the adapter
+```
+
+The training scripts share GPU 0 with the chat service; for a long run either stop `vllm-chat` first or point the
+run at GPU 1 after stopping `vllm-autocomplete`:
+
+```bash
+sudo systemctl stop vllm-autocomplete && CUDA_VISIBLE_DEVICES=1 python train.py --steps 2000
+sudo systemctl start vllm-autocomplete
+```
+
+## 6. Operating
+
+```bash
+sudo systemctl status vllm-chat vllm-autocomplete      # state
+journalctl -u vllm-chat -f                             # live log (requests, errors)
+sudo docker logs -f open-webui
+nvidia-smi                                             # who is on which GPU
+curl -s -H "Authorization: Bearer $KEY" localhost:8000/v1/models   # health
+```
+
+Change a model: edit `CHAT_MODEL` or `FIM_MODEL` in `/etc/vllm.env`, then `sudo systemctl restart vllm-chat`
+(or `vllm-autocomplete`). vLLM downloads the new weights on first start. Candidates that fit 8 GB: any
+`*-7B-Instruct-AWQ` / `-GPTQ-Int4` for chat; `Qwen2.5-Coder-0.5B` for even faster autocomplete.
+
+Re-running `serving/install.sh` is safe; it keeps the existing key and only re-does what is missing.
+
+## 7. Troubleshooting
+
+| Symptom | Look at |
+|---|---|
+| `nvidia-smi: No devices were found` | `docs/gpu-passthrough-troubleshooting.md` |
+| chat service restarts in a loop | `journalctl -u vllm-chat -n 200`; an OOM at start-up means the KV cache does not fit: lower `--max-model-len` in the unit file |
+| `Could not find nvcc` in the log | the unit must have `VLLM_USE_FLASHINFER_SAMPLER=0` (already set) |
+| 401 from the API | wrong or missing `Authorization: Bearer` header |
+| autocomplete returns chatty prose | you are hitting `coder-chat`; autocomplete must use `coder-fim` on :8001 with FIM tokens |
