@@ -1,7 +1,9 @@
 # skyops-coder
 
-Self-hosted coding assistant on a two-GPU VM: a 7B coder model for chat, edits and agents, a small
-fill-in-the-middle model for inline autocomplete, a 3B vision model for screenshots, server-side Whisper for voice, an OpenAI-compatible API with a key, a web chat UI,
+Self-hosted AI assistant for a small engineering team on a two-GPU office VM: a 7B coder model for chat, edits and
+agents, a small fill-in-the-middle model for inline autocomplete, a 3B vision model for screenshots, server-side
+Whisper for voice, **AI code review and architecture review on every pull request, an issue-to-PR coding agent, CI/CD
+on a self-hosted runner, Prometheus/Grafana monitoring and encrypted nightly backups**, an OpenAI-compatible API with a key, a web chat UI,
 and a LoRA fine-tuning pipeline for training your own adapters. Everything runs as systemd services
 and survives reboots.
 
@@ -33,7 +35,13 @@ and survives reboots.
 | `tools/gpu_passthrough_check.sh` | Host-side diagnostic for GPU passthrough (see docs). |
 | `clients/render.sh` | Writes ready-to-use copies of the client files to `clients/local/` (git-ignored). |
 | `docs/architecture.md` | Deployment picture: layers, which process owns which GPU, memory budgets, ports. |
-| `docs/usage.md` | How to use it from the browser, VS Code, aider, SDKs; fine-tuning; operations. |
+| `docs/usage.md` | How to use it from the browser, VS Code, aider, SDKs; fine-tuning. |
+| `docs/operations.md` | CI/CD on the office runner, AI review/agents for the team, monitoring, backup & recovery runbook. |
+| `docs/plan/ROADMAP.md`, `docs/adr/` | Roadmap and architecture decision records. |
+| `docs/research/` | Measured research: running models on small GPUs. |
+| `agents/` | AI code review, architecture review and issue-to-PR agents (local model, stdlib only, unit-tested). |
+| `.github/workflows/` | `ci`, `ai-code-review`, `ai-architecture-review`, `ai-task`, `cd`; all run on the office runner. |
+| `ops/runner/`, `ops/monitoring/`, `ops/backup/` | Self-hosted runner, Prometheus/Grafana stack, encrypted nightly backups. |
 | `docs/gpu-passthrough-troubleshooting.md` | How a "healthy" GPU can be unusable in a VM, and how to prove why. |
 
 ## Quick start
