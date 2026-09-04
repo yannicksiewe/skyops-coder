@@ -15,21 +15,22 @@
 | Model | Size | Fits? | Verdict |
 |---|---|---|---|
 | **Qwen2.5-Coder-7B-Instruct-AWQ** (current chat) | 7B, int4 = 5.4 GB | yes, 16k ctx | strong coder, tool calling, proven here at 81 tok/s |
-| **Qwen3.5-9B** (AWQ / w4a16) | 9B dense, int4 ~5.5 GB, **vision + text + thinking** in one | to be measured | could replace chat *and* vision with one better model (LiveCodeBench 65.6) |
+| **Qwen3.5-9B** (AWQ) | 9B dense, **vision + text + thinking** in one | **no** (measured: 12 GB checkpoint, OOM while loading on both cards) | 248k vocabulary keeps ~4 GB of embeddings in fp16 |
+| Qwen3.5-4B (AWQ) | small multimodal | **no** on the 2080 (5.7 GB weights, no KV room) | same cause |
 | Qwen3.5-35B-A3B-GPTQ-Int4 | 35B MoE, ~19 GB | no | needs a 24 GB card |
 | GLM-5.3-Flash | 320B MoE, 18B active | no (~160 GB at int4) | API-only for us |
 | GLM-5 / 5.1 / 5.2 | larger still | no | |
-| GLM-4-9B-0414 / GLM-Z1-9B | 9B, int4 ~5.5 GB | yes | older generation than Qwen3.5-9B; no advantage |
+| GLM-4-9B-0414 (AWQ) | 9B, 7.4 GB used | yes, 3070 only, eager | measured 6/8 at 46 tok/s vs coder 6/8 at 82 tok/s; refuses fp16 (no Turing) |
 | GLM-4.1V-9B-Thinking | 9B vision | yes | vision only; Qwen3.5-9B covers it |
 | Qwen2.5-Coder-0.5B (FIM) | 0.5B fp16 = 1 GB | yes | autocomplete, stays |
 | Qwen2.5-VL-3B-AWQ (vision) | 3B | yes | stays unless Qwen3.5-9B takes over vision |
 
-## Decision
+## Decision (after the trials, see docs/research/local-llm-small-resources.md)
 
-1. Keep the current trio in production. 2. Run a measured trial of Qwen3.5-9B-AWQ (throughput, VRAM, coding and
-vision quality on our smoke tests). 3. If it fits with >= 8k context and matches the coder on code tasks, switch
-`CHAT_MODEL` to it and drop the separate vision service, freeing the 2080 for a bigger autocomplete model.
-4. GLM: none of the 5.x family is deployable here; revisit only with a >= 48 GB GPU or a hosted API.
+1. Keep the current trio in production: Qwen2.5-Coder-7B-AWQ (chat), Qwen2.5-Coder-0.5B (FIM), Qwen2.5-VL-3B-AWQ (vision).
+2. Qwen3.5-9B/4B: rejected on this hardware (do not fit). Re-test when a variant with quantized embeddings exists.
+3. GLM-4-9B: runs, equal score, 44 % slower, Ampere-only, eager-only: no reason to switch. GLM-5.x: impossible locally.
+4. Revisit the whole table when a >= 24 GB GPU is added.
 
 ## Consequences
 
