@@ -3,7 +3,8 @@
 Self-hosted AI assistant for a small engineering team on a two-GPU office VM: a 7B coder model for chat, edits and
 agents, a small fill-in-the-middle model for inline autocomplete, a 3B vision model for screenshots, server-side
 Whisper for voice, **AI code review and architecture review on every pull request, an issue-to-PR coding agent, CI/CD
-on a self-hosted runner, Prometheus/Grafana monitoring and encrypted nightly backups**, an OpenAI-compatible API with a key, a web chat UI,
+on a self-hosted runner, Prometheus/Grafana monitoring, an LLM gateway with per-user token accounting and budgets, request tracing with
+content, and encrypted nightly backups**, an OpenAI-compatible API with a key, a web chat UI,
 and a LoRA fine-tuning pipeline for training your own adapters. Everything runs as systemd services
 and survives reboots.
 
@@ -42,6 +43,8 @@ and survives reboots.
 | `agents/` | AI code review, architecture review and issue-to-PR agents (local model, stdlib only, unit-tested). |
 | `.github/workflows/` | `ci`, `ai-code-review`, `ai-architecture-review`, `ai-task`, `cd`; all run on the office runner. |
 | `ops/runner/`, `ops/monitoring/`, `ops/backup/` | Self-hosted runner, Prometheus/Grafana stack, encrypted nightly backups. |
+| `ops/gateway/`, `ops/langfuse/` | LiteLLM gateway (keys, budgets, per-user token/latency accounting) and Langfuse (traces with content). |
+| `docs/governance.md` | What is measured and stored about usage, budgets in token units, privacy and retention. |
 | `docs/gpu-passthrough-troubleshooting.md` | How a "healthy" GPU can be unusable in a VM, and how to prove why. |
 
 ## Quick start

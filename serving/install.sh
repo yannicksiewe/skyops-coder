@@ -37,6 +37,13 @@ sudo cp "$HOME/vllm/vllm-chat.service" "$HOME/vllm/vllm-autocomplete.service" "$
 sudo systemctl daemon-reload
 sudo systemctl enable --now vllm-chat vllm-autocomplete vllm-vision
 
+# Through the gateway when installed (per-user accounting), else straight to vLLM
+if sudo test -f /etc/litellm/keys.txt; then
+  WEBUI_LLM_URLS="http://127.0.0.1:4000/v1"; WEBUI_LLM_KEYS="$(sudo grep '^webui=' /etc/litellm/keys.txt | cut -d= -f2)"
+else
+  WEBUI_LLM_URLS="http://127.0.0.1:8000/v1;http://127.0.0.1:8002/v1"; WEBUI_LLM_KEYS="$VLLM_API_KEY;$VLLM_API_KEY"
+fi
+
 log "Docker + Open WebUI"
 if ! command -v docker >/dev/null; then
   curl -fsSL https://get.docker.com | sudo sh >/dev/null 2>&1
@@ -48,8 +55,8 @@ sudo docker rm -f open-webui >/dev/null 2>&1 || true
 sudo docker run -d --name open-webui --restart unless-stopped --network host \
   -v open-webui:/app/backend/data \
   -e PORT=3000 \
-  -e OPENAI_API_BASE_URLS="http://127.0.0.1:8000/v1;http://127.0.0.1:8002/v1" \
-  -e OPENAI_API_KEYS="$VLLM_API_KEY;$VLLM_API_KEY" \
+  -e OPENAI_API_BASE_URLS="$WEBUI_LLM_URLS" -e OPENAI_API_KEYS="$WEBUI_LLM_KEYS" \
+  -e ENABLE_FORWARD_USER_INFO_HEADERS=true \
   -e ENABLE_OLLAMA_API=false -e WEBUI_AUTH=true \
   -e ENABLE_EVALUATION_ARENA_MODELS=false \
   -e ENABLE_FOLLOW_UP_GENERATION=false \
@@ -59,12 +66,13 @@ sudo docker run -d --name open-webui --restart unless-stopped --network host \
 log "Open WebUI persisted settings (its DB overrides env vars after the first start)"
 for _ in $(seq 1 60); do [ "$(curl -s -o /dev/null -w '%{http_code}' localhost:3000)" = 200 ] && break; sleep 5; done
 sudo docker cp "$HOME/vllm/webui_config.py" open-webui:/tmp/webui_config.py
-sudo docker exec open-webui python3 /tmp/webui_config.py "$(python3 - "$VLLM_API_KEY" "${WHISPER_MODEL:-small}" <<'PY'
-import json, sys
+sudo docker exec open-webui python3 /tmp/webui_config.py "$(WEBUI_LLM_URLS="$WEBUI_LLM_URLS" WEBUI_LLM_KEYS="$WEBUI_LLM_KEYS" python3 - "$VLLM_API_KEY" "${WHISPER_MODEL:-small}" <<'PY'
+import json, os, sys
 key, whisper = sys.argv[1], sys.argv[2]
+urls, keys = os.environ["WEBUI_LLM_URLS"].split(";"), os.environ["WEBUI_LLM_KEYS"].split(";")
 print(json.dumps({
-  "openai.api_base_urls": ["http://127.0.0.1:8000/v1", "http://127.0.0.1:8002/v1"],
-  "openai.api_keys": [key, key],
+  "openai.api_base_urls": urls,
+  "openai.api_keys": keys,
   "openai.api_configs": {},
   "evaluation.arena.enable": False,
   "task.follow_up.enable": False,

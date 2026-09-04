@@ -56,6 +56,11 @@ ssh ubuntu@<VM_IP> 'sudo install -m600 backup-age.key /etc/skyops/backup-age.key
 Restore proof: `ops/backup/restore_test.sh` restores the UI volume into a scratch volume and checks users/chats;
 run it after any change to the backup script. Last verified: 2026-09-04, `users=1 chats=4`, PASSED.
 
+## Gateway and traces
+
+See `docs/governance.md`. Health: `curl -s localhost:4000/health/liveliness`, `curl -s localhost:3002/api/public/health`.
+Both are Docker Compose stacks under `~/ops/gateway` and `~/ops/langfuse`; volumes are in the nightly backup.
+
 ## Disk housekeeping
 
 The 96 GB disk holds ~17 GB of production model weights, ~15 GB of Python environments and the Docker images.

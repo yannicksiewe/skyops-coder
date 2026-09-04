@@ -1,8 +1,9 @@
 # Usage guide
 
 Replace `<VM_IP>` with the VM address and `<VLLM_API_KEY>` with the key from `/etc/vllm.env` on the VM
-(`ssh ubuntu@<VM_IP> sudo cat /etc/vllm.env`). Or run `clients/render.sh <VM_IP> <VLLM_API_KEY>` once: it writes
-ready-to-use copies of every client file to `clients/local/` (git-ignored).
+(`ssh ubuntu@<VM_IP> sudo cat /etc/vllm.env`), or better a **gateway key** from `/etc/litellm/keys.txt` so your usage is
+accounted. Run `clients/render.sh https://api.skyops.lan/v1 <key>` once: it writes ready-to-use copies of every
+client file to `clients/local/` (git-ignored).
 
 ## 0. Names and HTTPS (optional, recommended)
 
@@ -11,7 +12,7 @@ ready-to-use copies of every client file to `clients/local/` (git-ignored).
 | Name | Goes to | Notes |
 |---|---|---|
 | `https://coder.skyops.lan` | Open WebUI | needs the resolver entry below |
-| `https://api.skyops.lan/v1` | chat API (`coder-chat`) | same key as port 8000 |
+| `https://api.skyops.lan/v1` | **gateway**: all three models, per-key accounting and budgets | use a gateway key (`/etc/litellm/keys.txt`), not the raw vLLM key |
 | `https://fim.skyops.lan/v1` | autocomplete API (`coder-fim`) | |
 | `https://vision.skyops.lan/v1` | vision API (`coder-vision`) | API only: the root path answers `{"detail":"Not Found"}`; use `/v1/models`, `/v1/chat/completions` with the key |
 | `https://gpu-direct.local` | Open WebUI | mDNS; works only on the same L2 network as the VM |

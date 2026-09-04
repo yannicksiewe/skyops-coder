@@ -13,12 +13,13 @@ mkdir -p "$BACKUP_DIR" "$WORK/state"
 
 # 1. secrets & identity
 cp /etc/vllm.env /etc/grafana_admin "$WORK/state/" 2>/dev/null || true
+for d in litellm langfuse skyops; do [ -d /etc/$d ] && tar -C /etc -czf "$WORK/state/etc-$d.tgz" $d; done   # gateway keys, langfuse secrets, backup age key
 tar -C /var/lib/caddy -czf "$WORK/state/caddy-pki.tgz" .local/share/caddy/pki 2>/dev/null || true
 [ -d "$UHOME/actions-runner" ] && tar -C "$UHOME/actions-runner" -czf "$WORK/state/runner-identity.tgz" .runner .credentials .credentials_rsaparams 2>/dev/null || true
 cp /etc/caddy/Caddyfile "$WORK/state/" 2>/dev/null || true
 cp /etc/dnsmasq.d/*.conf "$WORK/state/" 2>/dev/null || true
 # 2. user data: docker volumes
-for v in open-webui monitoring_grafana-data; do
+for v in open-webui monitoring_grafana-data gateway_gateway-pg langfuse_langfuse-pg langfuse_langfuse-clickhouse-data langfuse_langfuse-minio-data; do
   docker volume inspect "$v" >/dev/null 2>&1 && docker run --rm -v "$v":/data:ro -v "$WORK/state":/out alpine:3.20 tar -C /data --exclude=./cache -czf "/out/volume-$v.tgz" .  # ./cache = re-downloadable whisper/embedding models || true
 done
 # 3. work products: LoRA adapters

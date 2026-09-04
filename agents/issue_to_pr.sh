@@ -5,8 +5,8 @@
 set -euo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 N="${1:?issue number}"; REPO="${GITHUB_REPOSITORY:?}"; export GH_TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:?}}"
-. /etc/vllm.env
-export OPENAI_API_BASE="${LLM_BASE_URL:-http://127.0.0.1:8000/v1}" OPENAI_API_KEY="$VLLM_API_KEY"
+. /etc/vllm.env; [ -f /etc/litellm/agents.env ] && . /etc/litellm/agents.env   # gateway key if the gateway is installed
+export OPENAI_API_BASE="${LLM_BASE_URL:-http://127.0.0.1:8000/v1}" OPENAI_API_KEY="${LLM_API_KEY:-$VLLM_API_KEY}"
 MODEL="openai/${LLM_MODEL:-coder-chat}"
 TITLE=$(gh issue view "$N" --repo "$REPO" --json title -q .title)
 BODY=$(gh issue view "$N" --repo "$REPO" --json body -q .body)

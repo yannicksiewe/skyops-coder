@@ -1,0 +1,26 @@
+# LiteLLM proxy config. Model names are what clients use; api_base points at the local vLLM servers.
+# "cost" is defined as 1e-6 per token, i.e. spend and budgets are expressed in MILLIONS OF TOKENS (no real money).
+model_list:
+  - model_name: coder-chat
+    litellm_params: { model: openai/coder-chat, api_base: http://127.0.0.1:8000/v1, api_key: os.environ/VLLM_API_KEY, input_cost_per_token: 0.000001, output_cost_per_token: 0.000001 }
+    model_info: { mode: chat }
+  - model_name: coder-vision
+    litellm_params: { model: openai/coder-vision, api_base: http://127.0.0.1:8002/v1, api_key: os.environ/VLLM_API_KEY, input_cost_per_token: 0.000001, output_cost_per_token: 0.000001 }
+    model_info: { mode: chat, supports_vision: true }
+  - model_name: coder-fim
+    litellm_params: { model: text-completion-openai/coder-fim, api_base: http://127.0.0.1:8001/v1, api_key: os.environ/VLLM_API_KEY, input_cost_per_token: 0.000001, output_cost_per_token: 0.000001 }
+    model_info: { mode: completion }
+
+litellm_settings:
+  drop_params: true
+  callbacks: ["prometheus"]          # /metrics on the proxy port
+  # ops/langfuse/install.sh adds:  success_callback/failure_callback: ["langfuse"]  (traces with content)
+  request_timeout: 600
+
+general_settings:
+  user_header_name: X-OpenWebUI-User-Email   # Open WebUI forwards the logged-in user -> per-user attribution (end_user)
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: os.environ/DATABASE_URL
+  store_model_in_db: false
+  disable_spend_logs: false
+  proxy_batch_write_at: 10

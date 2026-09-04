@@ -1,4 +1,5 @@
 # Continue (VS Code / JetBrains) config -> save as ~/.continue/config.yaml
+# <API_BASE> = the gateway, e.g. https://api.skyops.lan/v1 ; <VLLM_API_KEY> = a gateway key (clients/render.sh fills both)
 name: skyops-coder
 version: 0.0.1
 schema: v1
@@ -6,7 +7,7 @@ models:
   - name: Coder 7B (skyops, RTX 3070)
     provider: openai
     model: coder-chat
-    apiBase: http://<VM_IP>:8000/v1
+    apiBase: <API_BASE>
     apiKey: <VLLM_API_KEY>
     roles: [chat, edit, apply]
     defaultCompletionOptions:
@@ -16,7 +17,7 @@ models:
   - name: Coder 1.5B autocomplete (skyops, RTX 2080)
     provider: openai
     model: coder-fim
-    apiBase: http://<VM_IP>:8001/v1
+    apiBase: <API_BASE>
     apiKey: <VLLM_API_KEY>
     roles: [autocomplete]
     promptTemplates:

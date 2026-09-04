@@ -1,0 +1,25 @@
+# LLM gateway: LiteLLM proxy (keys, budgets, per-user token accounting, metrics) + Postgres for its state.
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg
+      POSTGRES_DB: litellm
+    ports: ["127.0.0.1:5432:5432"]   # litellm runs on the host network
+    volumes:
+      - gateway-pg:/var/lib/postgresql/data
+      - /etc/litellm/pg_password:/run/secrets/pg:ro
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U litellm"], interval: 5s, timeout: 3s, retries: 20 }
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    restart: unless-stopped
+    network_mode: host          # so it can reach the vLLM servers on 127.0.0.1 and be scraped on 127.0.0.1:4000
+    depends_on: { postgres: { condition: service_healthy } }
+    env_file: /etc/litellm/litellm.env
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--host", "127.0.0.1", "--port", "4000"]
+volumes:
+  gateway-pg:

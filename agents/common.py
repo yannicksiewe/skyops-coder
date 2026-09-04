@@ -13,11 +13,12 @@ def _env_file(path="/etc/vllm.env"):
     return out
 
 def llm_config():
-    env = _env_file()
+    """Gateway first (/etc/litellm/agents.env: per-key accounting), direct vLLM (/etc/vllm.env) as fallback."""
+    gw, env = _env_file("/etc/litellm/agents.env"), _env_file()
     return {
-        "base_url": os.environ.get("LLM_BASE_URL", "http://127.0.0.1:8000/v1").rstrip("/"),
-        "api_key": os.environ.get("LLM_API_KEY") or env.get("VLLM_API_KEY", ""),
-        "model": os.environ.get("LLM_MODEL", "coder-chat"),
+        "base_url": (os.environ.get("LLM_BASE_URL") or gw.get("LLM_BASE_URL") or "http://127.0.0.1:8000/v1").rstrip("/"),
+        "api_key": os.environ.get("LLM_API_KEY") or gw.get("LLM_API_KEY") or env.get("VLLM_API_KEY", ""),
+        "model": os.environ.get("LLM_MODEL") or gw.get("LLM_MODEL") or "coder-chat",
     }
 
 class LLM:

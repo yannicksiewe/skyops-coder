@@ -105,6 +105,15 @@ so stop `vllm-autocomplete` first (`sudo systemctl stop vllm-autocomplete`) or t
 
 The CA root is exported to `~/skyops.lan-root.crt` on the VM; clients trust it once. The plain-HTTP ports stay open.
 
+## Governance layer (`ops/gateway`, `ops/langfuse`)
+
+| Component | Listens | Role |
+|---|---|---|
+| LiteLLM proxy + Postgres | `127.0.0.1:4000`, `:5432` | keys/teams/budgets, per-user token + latency accounting, `/metrics`, admin UI |
+| Langfuse web/worker, Postgres, ClickHouse, Redis, MinIO | `127.0.0.1:3002`, `:3030`, `:9095` | traces with prompt/response content, scores |
+
+Clients -> `:4000` -> vLLM. `api.skyops.lan` and Open WebUI point at the gateway; `langfuse.skyops.lan` at Langfuse.
+
 ## Network and security
 
 * All three ports listen on `0.0.0.0` inside the VM; the VM is on a private LAN (no public exposure).

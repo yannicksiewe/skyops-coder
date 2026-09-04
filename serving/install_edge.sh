@@ -46,7 +46,7 @@ coder.${ZONE}, ${HOST}.local, ${IP} {
 	reverse_proxy 127.0.0.1:3000
 }
 api.${ZONE} {
-	reverse_proxy 127.0.0.1:8000
+	reverse_proxy 127.0.0.1:4000   # LLM gateway (ops/gateway); falls back to :8000 if you skip the gateway
 }
 fim.${ZONE} {
 	reverse_proxy 127.0.0.1:8001

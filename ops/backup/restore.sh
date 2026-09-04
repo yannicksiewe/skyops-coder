@@ -19,6 +19,7 @@ install -m 640 -o root -g ubuntu "$S/vllm.env" /etc/vllm.env
 [ -f "$S/grafana_admin" ] && install -m 644 "$S/grafana_admin" /etc/grafana_admin
 [ -f "$S/Caddyfile" ] && install -m 644 "$S/Caddyfile" /etc/caddy/Caddyfile
 [ -f "$S/caddy-pki.tgz" ] && mkdir -p /var/lib/caddy && tar -C /var/lib/caddy -xzf "$S/caddy-pki.tgz" && chown -R caddy:caddy /var/lib/caddy
+for t in "$S"/etc-*.tgz; do [ -f "$t" ] && tar -C /etc -xzf "$t"; done
 for c in "$S"/*.conf; do [ -f "$c" ] && install -m 644 "$c" /etc/dnsmasq.d/; done
 for t in "$S"/volume-*.tgz; do
   [ -f "$t" ] || continue; v=$(basename "$t" .tgz); v=${v#volume-}
@@ -30,5 +31,6 @@ done
 [ -f "$S/runner-identity.tgz" ] && [ -d "$UHOME/actions-runner" ] && tar -C "$UHOME/actions-runner" -xzf "$S/runner-identity.tgz"
 systemctl restart caddy dnsmasq 2>/dev/null || true
 docker restart open-webui >/dev/null 2>&1 || true
+for d in gateway langfuse monitoring; do [ -f "$UHOME/ops/$d/compose.yml" ] && ( cd "$UHOME/ops/$d" && docker compose -f compose.yml up -d >/dev/null 2>&1 ) || true; done
 systemctl restart vllm-chat vllm-autocomplete vllm-vision 2>/dev/null || true
 echo "restore done; check: nvidia-smi, curl localhost:3000, systemctl status vllm-chat"
