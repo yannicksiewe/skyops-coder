@@ -1,0 +1,7 @@
+[Unit]
+Description=skyops nightly backup
+[Service]
+Type=oneshot
+User=root
+Environment=UHOME=/home/ubuntu
+ExecStart=/home/ubuntu/ops/backup/backup.sh

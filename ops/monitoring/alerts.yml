@@ -1,0 +1,23 @@
+groups:
+  - name: skyops
+    rules:
+      - alert: ModelEndpointDown
+        expr: up{job="vllm"} == 0
+        for: 3m
+        labels: { severity: critical }
+        annotations: { summary: "vLLM {{ $labels.service }} is down" }
+      - alert: GpuHot
+        expr: nvidia_smi_temperature_gpu > 85
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "GPU {{ $labels.uuid }} above 85 C" }
+      - alert: KvCacheSaturated
+        expr: vllm:gpu_cache_usage_perc > 0.95
+        for: 10m
+        labels: { severity: warning }
+        annotations: { summary: "{{ $labels.model_name }} KV cache > 95% for 10 min (requests are queueing)" }
+      - alert: DiskLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.10
+        for: 15m
+        labels: { severity: critical }
+        annotations: { summary: "Root disk below 10% free" }

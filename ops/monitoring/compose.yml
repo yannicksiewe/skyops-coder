@@ -1,0 +1,38 @@
+# Monitoring for the coding-assistant VM: Prometheus + Grafana + node exporter (host network so localhost targets work).
+services:
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=30d", "--web.listen-address=127.0.0.1:9090"]
+  grafana:
+    image: grafana/grafana:12.1.0
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      GF_SERVER_HTTP_ADDR: 127.0.0.1
+      GF_SERVER_HTTP_PORT: "3001"
+      GF_SERVER_ROOT_URL: https://grafana.skyops.lan
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - /etc/grafana_admin:/run/secrets/grafana_admin:ro
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    network_mode: host
+    pid: host
+    restart: unless-stopped
+    command: ["--path.rootfs=/host", "--web.listen-address=127.0.0.1:9100"]
+    volumes: ["/:/host:ro,rslave"]
+volumes:
+  prometheus-data:
+  grafana-data:
