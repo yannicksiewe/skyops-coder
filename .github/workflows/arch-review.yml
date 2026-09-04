@@ -1,0 +1,23 @@
+name: ai-architecture-review
+on:
+  pull_request:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+permissions:
+  pull-requests: write
+  issues: write
+  contents: read
+jobs:
+  arch:
+    runs-on: [self-hosted, linux, skyops]
+    if: >
+      (github.event_name == 'pull_request' && github.event.label.name == 'architecture-review' && github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/arch-review'))
+    steps:
+      - uses: actions/checkout@v4
+      - name: architecture review with the local model
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python3 agents/arch_review.py ${{ github.event.pull_request.number || github.event.issue.number }}

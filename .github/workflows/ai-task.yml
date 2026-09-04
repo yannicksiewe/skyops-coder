@@ -1,0 +1,20 @@
+name: ai-task
+on:
+  issues:
+    types: [labeled]
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+jobs:
+  implement:
+    runs-on: [self-hosted, linux, skyops]
+    if: github.event.label.name == 'ai-task'
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: implement the issue with aider on the local model
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: agents/issue_to_pr.sh ${{ github.event.issue.number }}

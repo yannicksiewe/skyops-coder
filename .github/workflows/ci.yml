@@ -1,0 +1,19 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  checks:
+    runs-on: [self-hosted, linux, skyops]
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        run: shellcheck -S warning $(git ls-files '*.sh')
+      - name: python compile
+        run: python3 -m py_compile $(git ls-files '*.py')
+      - name: agent unit tests
+        run: ~/agents/.venv/bin/python -m pytest -q agents/tests
+      - name: systemd unit files parse
+        run: for f in serving/*.service; do systemd-analyze verify --no-pager "$f" 2>&1 | grep -viE "Unit .* not found|is not executable|^$" || true; done

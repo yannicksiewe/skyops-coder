@@ -1,0 +1,20 @@
+name: cd
+on:
+  push:
+    branches: [main]
+    paths: ['serving/**', 'ops/**', 'infra/**']
+concurrency: deploy
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, skyops]
+    steps:
+      - uses: actions/checkout@v4
+      - name: apply serving config on this VM
+        run: serving/apply.sh
+      - name: health
+        run: |
+          . /etc/vllm.env
+          for p in 8000 8001 8002; do
+            for i in $(seq 1 60); do curl -sf -o /dev/null -H "Authorization: Bearer $VLLM_API_KEY" localhost:$p/v1/models && break; sleep 5; done
+            curl -sf -o /dev/null -H "Authorization: Bearer $VLLM_API_KEY" localhost:$p/v1/models && echo "port $p ok" || { echo "port $p DOWN"; exit 1; }
+          done

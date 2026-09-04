@@ -57,7 +57,7 @@ sudo docker run -d --name open-webui --restart unless-stopped --network host \
   ghcr.io/open-webui/open-webui:${OPEN_WEBUI_TAG:-v0.11.3} >/dev/null
 
 log "Open WebUI persisted settings (its DB overrides env vars after the first start)"
-for i in $(seq 1 60); do [ "$(curl -s -o /dev/null -w '%{http_code}' localhost:3000)" = 200 ] && break; sleep 5; done
+for _ in $(seq 1 60); do [ "$(curl -s -o /dev/null -w '%{http_code}' localhost:3000)" = 200 ] && break; sleep 5; done
 sudo docker cp "$HOME/vllm/webui_config.py" open-webui:/tmp/webui_config.py
 sudo docker exec open-webui python3 /tmp/webui_config.py "$(python3 - "$VLLM_API_KEY" "${WHISPER_MODEL:-small}" <<'PY'
 import json, sys
@@ -76,7 +76,7 @@ PY
 sudo docker restart open-webui >/dev/null
 
 log "Waiting for the chat endpoint"
-for i in $(seq 1 90); do curl -s -H "Authorization: Bearer $VLLM_API_KEY" localhost:8000/v1/models | grep -q "$CHAT_MODEL" && break; sleep 5; done
+for _ in $(seq 1 90); do curl -s -H "Authorization: Bearer $VLLM_API_KEY" localhost:8000/v1/models | grep -q "$CHAT_MODEL" && break; sleep 5; done
 curl -s -H "Authorization: Bearer $VLLM_API_KEY" localhost:8000/v1/models | python3 -c "import sys,json; print('chat models:', [m['id'] for m in json.load(sys.stdin)['data']])"
 echo "API key: $VLLM_API_KEY"
 echo "Done."
