@@ -23,7 +23,8 @@ and survives reboots.
 | `infra/deploy.sh user@host` | Copy + run the above from your laptop. |
 | `training/train.py` | LoRA / QLoRA SFT on an instruction dataset, sized for 8 GB VRAM. |
 | `training/infer.py` | Chat with a base model or adapter; `--serve` exposes an OpenAI-style endpoint. |
-| `serving/install.sh` | vLLM in its own venv, two systemd services, Open WebUI in Docker, API key. |
+| `serving/install.sh` | vLLM in its own venv, three systemd services, Open WebUI in Docker, API key. |
+| `serving/webui_config.py` | Writes connections / Whisper / feature flags into Open WebUI's persisted config (env vars are ignored after first start). |
 | `serving/deploy_serving.sh user@host` | Copy + run the above. |
 | `serving/install_edge.sh` | Local DNS zone (dnsmasq), mDNS (avahi), HTTPS reverse proxy with a private CA (Caddy). |
 | `clients/mac-setup.sh user@host` | Trust the VM's CA on a Mac and print the resolver command for `*.skyops.lan`. |

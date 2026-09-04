@@ -56,6 +56,25 @@ sudo docker run -d --name open-webui --restart unless-stopped --network host \
   -e WHISPER_MODEL="${WHISPER_MODEL:-small}" -e WHISPER_MODEL_AUTO_UPDATE=true -e WHISPER_VAD_FILTER=true \
   ghcr.io/open-webui/open-webui:${OPEN_WEBUI_TAG:-v0.11.3} >/dev/null
 
+log "Open WebUI persisted settings (its DB overrides env vars after the first start)"
+for i in $(seq 1 60); do [ "$(curl -s -o /dev/null -w '%{http_code}' localhost:3000)" = 200 ] && break; sleep 5; done
+sudo docker cp "$HOME/vllm/webui_config.py" open-webui:/tmp/webui_config.py
+sudo docker exec open-webui python3 /tmp/webui_config.py "$(python3 - "$VLLM_API_KEY" "${WHISPER_MODEL:-small}" <<'PY'
+import json, sys
+key, whisper = sys.argv[1], sys.argv[2]
+print(json.dumps({
+  "openai.api_base_urls": ["http://127.0.0.1:8000/v1", "http://127.0.0.1:8002/v1"],
+  "openai.api_keys": [key, key],
+  "openai.api_configs": {},
+  "evaluation.arena.enable": False,
+  "task.follow_up.enable": False,
+  "audio.stt.engine": "",
+  "audio.stt.whisper_model": whisper,
+}))
+PY
+)"
+sudo docker restart open-webui >/dev/null
+
 log "Waiting for the chat endpoint"
 for i in $(seq 1 90); do curl -s -H "Authorization: Bearer $VLLM_API_KEY" localhost:8000/v1/models | grep -q "$CHAT_MODEL" && break; sleep 5; done
 curl -s -H "Authorization: Bearer $VLLM_API_KEY" localhost:8000/v1/models | python3 -c "import sys,json; print('chat models:', [m['id'] for m in json.load(sys.stdin)['data']])"

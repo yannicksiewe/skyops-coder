@@ -13,7 +13,7 @@ ready-to-use copies of every client file to `clients/local/` (git-ignored).
 | `https://coder.skyops.lan` | Open WebUI | needs the resolver entry below |
 | `https://api.skyops.lan/v1` | chat API (`coder-chat`) | same key as port 8000 |
 | `https://fim.skyops.lan/v1` | autocomplete API (`coder-fim`) | |
-| `https://vision.skyops.lan/v1` | vision API (`coder-vision`) | images as OpenAI `image_url` content parts |
+| `https://vision.skyops.lan/v1` | vision API (`coder-vision`) | API only: the root path answers `{"detail":"Not Found"}`; use `/v1/models`, `/v1/chat/completions` with the key |
 | `https://gpu-direct.local` | Open WebUI | mDNS; works only on the same L2 network as the VM |
 | `http://<VM_IP>:3000 / :8000 / :8001` | everything, unchanged | still available without TLS |
 
@@ -132,4 +132,5 @@ Re-running `serving/install.sh` is safe; it keeps the existing key and only re-d
 | `Could not find nvcc` in the log | the unit must have `VLLM_USE_FLASHINFER_SAMPLER=0` (already set) |
 | 401 from the API | wrong or missing `Authorization: Bearer` header |
 | autocomplete returns chatty prose | you are hitting `coder-chat`; autocomplete must use `coder-fim` on :8001 with FIM tokens |
+| web UI settings (connections, Whisper model, arena) do not change after editing env vars | Open WebUI persists them in its DB on first start and ignores env afterwards; `serving/install.sh` writes them with `serving/webui_config.py` on every run (Admin -> Settings also works) |
 | web UI: `'JSONResponse' object has no attribute 'body_iterator'` | the UI got an HTTP 400 from a model server and its error path crashed; `docker logs open-webui \| grep upstream_error` shows the real reason (seen: tool definitions sent to the FIM server) |
