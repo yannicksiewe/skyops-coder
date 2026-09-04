@@ -88,6 +88,16 @@ web app that forwards to the two endpoints. Training scripts are run by hand and
 `CUDA_VISIBLE_DEVICES` names; running `train.py` on GPU 1 while the services are up will fail for lack of VRAM,
 so stop `vllm-autocomplete` first (`sudo systemctl stop vllm-autocomplete`) or train on a card you free up.
 
+## Edge (optional layer, `serving/install_edge.sh`)
+
+| Component | Listens | Role |
+|---|---|---|
+| dnsmasq | `<VM_IP>:53` | authoritative for `*.skyops.lan` -> VM (clients add the VM as resolver for that zone) |
+| avahi | mDNS on the LAN interface | `gpu-direct.local` for hosts on the same L2 segment |
+| Caddy | `:443` (+ `:80` redirect) | TLS with its own CA (`local_certs`): `coder.` -> :3000, `api.` -> :8000, `fim.` -> :8001 |
+
+The CA root is exported to `~/skyops.lan-root.crt` on the VM; clients trust it once. The plain-HTTP ports stay open.
+
 ## Network and security
 
 * All three ports listen on `0.0.0.0` inside the VM; the VM is on a private LAN (no public exposure).

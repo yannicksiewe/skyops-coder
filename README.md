@@ -24,6 +24,8 @@ and survives reboots.
 | `training/infer.py` | Chat with a base model or adapter; `--serve` exposes an OpenAI-style endpoint. |
 | `serving/install.sh` | vLLM in its own venv, two systemd services, Open WebUI in Docker, API key. |
 | `serving/deploy_serving.sh user@host` | Copy + run the above. |
+| `serving/install_edge.sh` | Local DNS zone (dnsmasq), mDNS (avahi), HTTPS reverse proxy with a private CA (Caddy). |
+| `clients/mac-setup.sh user@host` | Trust the VM's CA on a Mac and print the resolver command for `*.skyops.lan`. |
 | `clients/continue-config.yaml` | VS Code / JetBrains "Continue" config: chat + autocomplete. |
 | `clients/aider.env` | Terminal coding agent config. |
 | `tools/gpu_passthrough_check.sh` | Host-side diagnostic for GPU passthrough (see docs). |
@@ -43,7 +45,8 @@ serving/deploy_serving.sh ubuntu@<VM_IP>
 #    prints the API key; it lives in /etc/vllm.env on the VM
 
 # 3. clients
-#    web:      http://<VM_IP>:3000
+#    edge (optional): ssh ubuntu@<VM_IP> ZONE=skyops.lan ~/vllm/install_edge.sh ; clients/mac-setup.sh ubuntu@<VM_IP>
+#    web:      http://<VM_IP>:3000   or  https://coder.skyops.lan after the edge step
 #    clients/render.sh <VM_IP> <VLLM_API_KEY>      -> clients/local/*  (filled in, git-ignored)
 #    VS Code:  install "Continue", cp clients/local/continue-config.yaml ~/.continue/config.yaml
 #    terminal: uv tool install --python 3.12 aider-chat   (once)

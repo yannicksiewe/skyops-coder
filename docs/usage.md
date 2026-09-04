@@ -4,6 +4,26 @@ Replace `<VM_IP>` with the VM address and `<VLLM_API_KEY>` with the key from `/e
 (`ssh ubuntu@<VM_IP> sudo cat /etc/vllm.env`). Or run `clients/render.sh <VM_IP> <VLLM_API_KEY>` once: it writes
 ready-to-use copies of every client file to `clients/local/` (git-ignored).
 
+## 0. Names and HTTPS (optional, recommended)
+
+`serving/install_edge.sh` on the VM adds a local DNS zone, mDNS and an HTTPS reverse proxy with a private CA:
+
+| Name | Goes to | Notes |
+|---|---|---|
+| `https://coder.skyops.lan` | Open WebUI | needs the resolver entry below |
+| `https://api.skyops.lan/v1` | chat API (`coder-chat`) | same key as port 8000 |
+| `https://fim.skyops.lan/v1` | autocomplete API (`coder-fim`) | |
+| `https://gpu-direct.local` | Open WebUI | mDNS; works only on the same L2 network as the VM |
+| `http://<VM_IP>:3000 / :8000 / :8001` | everything, unchanged | still available without TLS |
+
+Client side, once per machine (`clients/mac-setup.sh ubuntu@<VM_IP>` does the first two):
+
+1. Trust the CA: `security add-trusted-cert -r trustRoot -k ~/Library/Keychains/login.keychain-db clients/local/skyops.lan-root.crt`
+2. Resolve the zone through the VM: `sudo mkdir -p /etc/resolver && printf 'nameserver <VM_IP>\n' | sudo tee /etc/resolver/skyops.lan`
+   (Linux: add `<VM_IP>` as a DNS server for `~skyops.lan` in systemd-resolved, or point the router's DNS at it.)
+
+HTTPS is what unlocks the browser features that need a secure origin: microphone, voice calls, clipboard, PWA install.
+
 ## 1. Web chat (nothing to install)
 
 Open `http://<VM_IP>:3000`. The first account created becomes admin. The model picker shows `coder-chat`; the
