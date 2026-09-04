@@ -53,3 +53,30 @@ def test_analyze_and_compose():
     body, comments = review.compose(result, "abc123", "fake")
     assert len(comments) == 2 and comments[0]["line"] == 4 and comments[0]["side"] == "RIGHT"
     assert "ai-review:abc123" in body and "`app.py:999`" in body  # off-diff finding lands in the summary
+
+def test_github_comment_verifies_after_dropped_connection():
+    """POST drops the connection, but the comment exists on the next GET -> treated as success."""
+    import common
+    state = {"posted": False}
+    class H(BaseHTTPRequestHandler):
+        def do_POST(self):
+            n = int(self.headers["content-length"]); body = json.loads(self.rfile.read(n))
+            state["posted"] = True; state["body"] = body["body"]
+            self.connection.close()  # drop without a response
+        def do_GET(self):
+            out = json.dumps([{"body": state.get("body", "")}]).encode()
+            self.send_response(200); self.send_header("content-type", "application/json"); self.end_headers(); self.wfile.write(out)
+        def log_message(self, *a): pass
+    srv = HTTPServer(("127.0.0.1", 0), H); threading.Thread(target=srv.serve_forever, daemon=True).start()
+    gh = common.GitHub(repo="o/r", token="t")
+    gh._req.__func__  # noqa - ensure attribute exists
+    common.time.sleep = lambda s: None  # no waiting in tests
+    orig = urllib_base = f"http://127.0.0.1:{srv.server_port}"
+    import urllib.request
+    real_Request = urllib.request.Request
+    def patched(url, *a, **k): return real_Request(url.replace("https://api.github.com", urllib_base), *a, **k)
+    common.urllib.request.Request = patched
+    try:
+        assert gh.comment(1, "hello")["body"] == "hello" and state["posted"]
+    finally:
+        common.urllib.request.Request = real_Request; srv.shutdown()

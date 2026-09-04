@@ -1,5 +1,5 @@
 """Shared helpers for the agents: local-LLM client (OpenAI-compatible), GitHub REST client, config."""
-import json, os, re, time, urllib.request, urllib.error
+import http.client, json, os, re, time, urllib.request, urllib.error
 
 def _env_file(path="/etc/vllm.env"):
     out = {}
@@ -42,6 +42,9 @@ class LLM:
         m = re.search(r"\{.*\}", text, flags=re.S)
         return json.loads(m.group(0) if m else text)
 
+class GitHubTransport(Exception):
+    """Connection dropped; a write may or may not have been applied."""
+
 class GitHub:
     def __init__(self, repo=None, token=None):
         self.repo = repo or os.environ["GITHUB_REPOSITORY"]
@@ -60,14 +63,32 @@ class GitHub:
             except urllib.error.HTTPError as e:
                 if e.code in (502, 503) and attempt < 2: time.sleep(2); continue
                 raise RuntimeError(f"GitHub {method} {path} -> {e.code}: {e.read()[:300]}") from None
+            except (http.client.RemoteDisconnected, ConnectionResetError, urllib.error.URLError) as e:
+                # GitHub sometimes closes the connection after accepting a write; retry reads, verify writes
+                if method == "GET" and attempt < 2: time.sleep(2); continue
+                raise GitHubTransport(f"GitHub {method} {path}: {e}") from None
 
     def pr(self, n): return self._req("GET", f"/repos/{self.repo}/pulls/{n}")
     def pr_diff(self, n): return self._req("GET", f"/repos/{self.repo}/pulls/{n}", accept="application/vnd.github.diff")
     def pr_reviews(self, n): return self._req("GET", f"/repos/{self.repo}/pulls/{n}/reviews")
     def post_review(self, n, body, comments, commit_id):
-        return self._req("POST", f"/repos/{self.repo}/pulls/{n}/reviews",
-                         {"body": body, "event": "COMMENT", "commit_id": commit_id, "comments": comments})
-    def comment(self, n, body): return self._req("POST", f"/repos/{self.repo}/issues/{n}/comments", {"body": body})
+        try:
+            return self._req("POST", f"/repos/{self.repo}/pulls/{n}/reviews",
+                             {"body": body, "event": "COMMENT", "commit_id": commit_id, "comments": comments})
+        except GitHubTransport:
+            time.sleep(3)
+            for rv in self.pr_reviews(n):
+                if (rv.get("body") or "") == body: return rv
+            raise
+    def comments(self, n): return self._req("GET", f"/repos/{self.repo}/issues/{n}/comments?per_page=100")
+    def comment(self, n, body):
+        try:
+            return self._req("POST", f"/repos/{self.repo}/issues/{n}/comments", {"body": body})
+        except GitHubTransport:
+            time.sleep(3)  # verify whether the write landed before giving up
+            for c in self.comments(n):
+                if (c.get("body") or "") == body: return c
+            raise
     def issue(self, n): return self._req("GET", f"/repos/{self.repo}/issues/{n}")
     def tree(self, ref):
         return self._req("GET", f"/repos/{self.repo}/git/trees/{ref}?recursive=1").get("tree", [])
