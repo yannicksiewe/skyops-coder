@@ -1,0 +1,24 @@
+{
+  "origin": {
+    "version": 1,
+    "sessionId": "7ac2442e-db1b-4729-8a81-ea4fe49d2131",
+    "model": "claude",
+    "agent": "claude-code",
+    "promptCount": 1,
+    "promptSummary": "Use the skyops-local MCP tool local_models and reply with exactly what it returns.",
+    "fullPrompt": "Use the skyops-local MCP tool local_models and reply with exactly what it returns.",
+    "prompts": [
+      {
+        "index": 0,
+        "text": "Use the skyops-local MCP tool local_models and reply with exactly what it returns.",
+        "agent": "claude-code",
+        "model": "claude"
+      }
+    ],
+    "durationMs": 48848,
+    "linesAdded": 253,
+    "linesRemoved": 6,
+    "originUrl": "https://getorigin.io/sessions/7ac2442e-db1b-4729-8a81-ea4fe49d2131",
+    "timestamp": "2026-09-04T14:45:53.424Z"
+  }
+}
