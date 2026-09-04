@@ -432,6 +432,244 @@
      }
     }
    ]
+  },
+  {
+   "id": 20,
+   "type": "row",
+   "title": "Secrets in prompts (gateway guardrail)",
+   "gridPos": {
+    "x": 0,
+    "y": 46,
+    "w": 24,
+    "h": 1
+   },
+   "collapsed": false
+  },
+  {
+   "id": 21,
+   "type": "stat",
+   "title": "Secrets caught, last 24h",
+   "gridPos": {
+    "x": 0,
+    "y": 47,
+    "w": 6,
+    "h": 5
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "red"
+     }
+    }
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "expr": "sum(increase(skyops_secrets_detected_total[24h])) or vector(0)",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 22,
+   "type": "stat",
+   "title": "Secrets caught, last 7d",
+   "gridPos": {
+    "x": 6,
+    "y": 47,
+    "w": 6,
+    "h": 5
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "red"
+     }
+    }
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "expr": "sum(increase(skyops_secrets_detected_total[7d])) or vector(0)",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 23,
+   "type": "stat",
+   "title": "Blocked (mode=block), last 7d",
+   "gridPos": {
+    "x": 12,
+    "y": 47,
+    "w": 6,
+    "h": 5
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "orange"
+     }
+    }
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "expr": "sum(increase(skyops_secrets_detected_total{mode=\"block\"}[7d])) or vector(0)",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 24,
+   "type": "stat",
+   "title": "Users who sent secrets, 7d",
+   "gridPos": {
+    "x": 18,
+    "y": 47,
+    "w": 6,
+    "h": 5
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "red"
+     }
+    }
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "expr": "count(count by (user) (increase(skyops_secrets_detected_total[7d]) > 0)) or vector(0)",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 25,
+   "type": "timeseries",
+   "title": "Secrets caught per hour, by type",
+   "gridPos": {
+    "x": 0,
+    "y": 52,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short"
+    }
+   },
+   "targets": [
+    {
+     "expr": "sum by (type) (increase(skyops_secrets_detected_total[1h]))",
+     "legendFormat": "{{type}}",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 26,
+   "type": "table",
+   "title": "By user and type, last 7 days",
+   "gridPos": {
+    "x": 12,
+    "y": 52,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "expr": "sort_desc(sum by (user, type, key_alias) (increase(skyops_secrets_detected_total[7d])))",
+     "format": "table",
+     "instant": true,
+     "refId": "A"
+    }
+   ],
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "excludeByName": {
+       "Time": true,
+       "__name__": true,
+       "instance": true,
+       "job": true
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": 27,
+   "type": "text",
+   "title": "Where to see the content",
+   "gridPos": {
+    "x": 0,
+    "y": 60,
+    "w": 24,
+    "h": 3
+   },
+   "options": {
+    "mode": "markdown",
+    "content": "Redacted prompts and who sent them: **Langfuse** -> Traces -> filter by tag `secrets-redacted` (per type: `secret:aws_access_key`, `secret:password_assignment`, ...). The secret itself is never stored; only `[REDACTED_<TYPE>]`. Switch to blocking with `SECRETS_GUARDRAIL_MODE=block` (ops/gateway/compose.yml)."
+   }
   }
  ]
 }

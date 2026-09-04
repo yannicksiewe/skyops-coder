@@ -76,6 +76,13 @@ def redact_messages(messages):
         out.append(m)
     return out, total
 
+try:  # Prometheus counter, served on the gateway's /metrics next to LiteLLM's own metrics
+    from prometheus_client import Counter
+    SECRETS_COUNTER = Counter("skyops_secrets_detected_total", "Secrets found in prompts by the gateway guardrail",
+                              ["type", "user", "mode", "key_alias"])
+except Exception:  # pragma: no cover
+    SECRETS_COUNTER = None
+
 try:  # LiteLLM integration (not needed for the unit tests)
     from litellm.integrations.custom_guardrail import CustomGuardrail
     from fastapi import HTTPException
@@ -90,9 +97,13 @@ try:  # LiteLLM integration (not needed for the unit tests)
                 data["prompt"], found = redact(data["prompt"])
             if found:
                 md = data.setdefault("metadata", {}) or {}
+                user = data.get("user") or md.get("user_api_key_end_user_id") or getattr(user_api_key_dict, "end_user_id", None) or "unknown"
+                alias = getattr(user_api_key_dict, "key_alias", None) or "unknown"
+                if SECRETS_COUNTER is not None:
+                    for k, n in found.items(): SECRETS_COUNTER.labels(type=k, user=str(user), mode=mode, key_alias=str(alias)).inc(n)
                 tags = list(md.get("tags") or []) + ["secrets-redacted"] + [f"secret:{k}" for k in found]
                 md["tags"] = tags; md["secrets_detected"] = found; data["metadata"] = md
-                print(f"[secrets-guardrail] mode={mode} user={data.get('user') or md.get('user_api_key_end_user_id')} found={found}", flush=True)
+                print(f"[secrets-guardrail] mode={mode} user={user} key={alias} found={found}", flush=True)
                 if mode == "block":
                     raise HTTPException(status_code=400, detail={"error": "Request blocked: it contains what looks like a secret "
                                         f"({', '.join(found)}). Remove credentials from the prompt and retry."})

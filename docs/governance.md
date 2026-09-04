@@ -20,7 +20,7 @@ body if they set it).
 | Tokens per user / model / client, last day / week | same dashboard (tables) or `litellm_input_tokens_metric_total` + `litellm_output_tokens_metric_total` by `end_user`, `model`, `api_key_alias` |
 | Time to reply, p50/p95, per model | same dashboard (`litellm_request_total_latency_metric`, `litellm_llm_api_latency_metric`); TTFT per model in the **vLLM** dashboard |
 | What exactly was asked and answered, by whom, how long it took | Langfuse -> Traces (filter by user, model, latency, date; full text search) |
-| Who pasted secrets, how often, which kind? | Langfuse -> Traces, filter tag `secrets-redacted` / `secret:<type>`; gateway log |
+| Who pasted secrets, how often, which kind? | Grafana **Usage & governance** -> section *Secrets in prompts* (counts by type and user, metric `skyops_secrets_detected_total`); the redacted content itself in Langfuse -> Traces, filter tag `secrets-redacted` / `secret:<type>` |
 | Was the answer good? | Langfuse scores: thumbs from reviewers, or automated scoring later; Open WebUI's own thumbs up/down stay in its DB |
 | Who is over budget? | gateway admin UI -> Keys / Users; metric `litellm_remaining_api_key_budget_metric` |
 | Failures and their causes | dashboard *Failed requests*; Langfuse traces with `level=ERROR` |
